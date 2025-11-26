@@ -104,7 +104,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Ben Wolstenholme \email{BenWolst@users.noreply.github.com}
+\strong{Maintainer}: Ben Wolstenholme \email{odiffr@benwolst.dev}
 
 }
 \keyword{internal}
