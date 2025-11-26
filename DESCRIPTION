@@ -2,7 +2,7 @@ Package: odiffr
 Title: Fast Pixel-by-Pixel Image Comparison Using 'odiff'
 Version: 0.1.0
 Authors@R:
-    person("Ben", "Wolstenholme", , "BenWolst@users.noreply.github.com", role = c("aut", "cre"))
+    person("Ben", "Wolstenholme", , "odiffr@benwolst.dev", role = c("aut", "cre"))
 Description: R bindings to 'odiff', a blazing-fast pixel-by-pixel image
     comparison tool. Supports PNG, JPEG, WEBP, and TIFF with configurable
     thresholds, antialiasing detection, and region ignoring. Requires system
