@@ -1,0 +1,33 @@
+# R package build artifacts
+*.Rproj.user
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Package build outputs
+*.tar.gz
+*.Rcheck/
+src/*.o
+src/*.so
+src/*.dll
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated docs
+docs/
+inst/doc/
+
+# Local dev
+.env
+.vscode/
+CLAUDE.md
+.claude/

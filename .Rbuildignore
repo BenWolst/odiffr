@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^\.github$
+^tools$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.lintr$
+^codecov\.yml$
+^cran-comments\.md$
+^\.claude$
+^CLAUDE\.md$
+^node_modules$
+^.*\.tar\.gz$

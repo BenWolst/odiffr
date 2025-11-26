@@ -1,0 +1,27 @@
+url: https://benwolst.github.io/odiffr/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [search, github]
+
+reference:
+  - title: Image Comparison
+    contents:
+      - compare_images
+      - compare_images_batch
+      - odiff_run
+      - ignore_region
+
+  - title: Binary Management
+    contents:
+      - find_odiff
+      - odiff_available
+      - odiff_version
+      - odiff_info
+      - odiffr_update
+      - odiffr_cache_path
+      - odiffr_clear_cache

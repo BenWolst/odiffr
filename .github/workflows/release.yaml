@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install odiff
+        run: npm install -g odiff-bin
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck, any::png
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+
+  release:
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::devtools
+          needs: build
+
+      - name: Build source package
+        run: |
+          mkdir -p dist
+          Rscript -e 'devtools::build(path = "dist", binary = FALSE)'
+
+      - name: Extract release notes from NEWS.md
+        id: release_notes
+        run: |
+          # Extract notes for current version from NEWS.md
+          VERSION=$(grep -m1 "^# Odiffr" NEWS.md | sed 's/# Odiffr //')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Get content between first and second version headers
+          awk '/^# Odiffr/{if(p) exit; p=1; next} p' NEWS.md > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.tar.gz
+          body_path: release_notes.md
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pkgdown:
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install odiff
+        run: npm install -g odiff-bin
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, local::.
+          needs: website
+
+      - name: Build pkgdown site
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
