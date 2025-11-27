@@ -1,5 +1,6 @@
-test_that("compare_images returns tibble when available", {
+test_that("compare_images returns tibble when tibble is installed", {
   skip_if_no_odiff()
+  skip_if_not_installed("tibble")
 
   img1 <- create_test_image(50, 50, "red")
   img2 <- create_test_image(50, 50, "red")
@@ -7,8 +8,8 @@ test_that("compare_images returns tibble when available", {
 
   result <- compare_images(img1, img2)
 
-  # Should be tibble if tibble is installed, data.frame otherwise
   expect_true(is.data.frame(result))
+  expect_s3_class(result, "tbl_df")
   expect_named(result, c("match", "reason", "diff_count", "diff_percentage",
                          "diff_output", "img1", "img2"))
 })
@@ -103,21 +104,25 @@ test_that("compare_images handles magick objects when magick is available", {
   expect_equal(result$img2, "<magick-image>")
 })
 
-test_that("compare_images errors without magick for magick objects", {
+test_that("compare_images errors for magick objects when magick support unavailable", {
   skip_if_no_odiff()
-  skip_if_not_installed("magick")
+  skip_if_not_installed("magick")  # Need magick to create the object
 
-  # This test is tricky since we can't easily unload magick
-
-  # Just verify the function signature accepts magick objects
   img_path <- create_test_image(10, 10, "red")
   on.exit(unlink(img_path), add = TRUE)
 
   img <- magick::image_read(img_path)
 
-  # Should work without error when magick is installed
-  result <- compare_images(img, img)
-  expect_true(result$match)
+  # Mock .has_magick to simulate magick being unavailable
+  testthat::local_mocked_bindings(
+    .has_magick = function() FALSE,
+    .package = "odiffr"
+  )
+
+  expect_error(
+    compare_images(img, img),
+    "magick.*package is required"
+  )
 })
 
 test_that("compare_images validates inputs", {
@@ -244,14 +249,23 @@ test_that("compare_images with fail_on_layout option", {
   expect_match(result$reason, "layout")  # Can be "layout" or "layout-diff"
 })
 
-test_that("compare_images returns data.frame without tibble", {
- skip_if_no_odiff()
+test_that("compare_images returns plain data.frame when tibble is unavailable", {
+  skip_if_no_odiff()
 
   img <- create_test_image(20, 20, "blue")
   on.exit(unlink(img), add = TRUE)
 
-  result <- compare_images(img, img)
-
-  # Should always be at least a data.frame
-  expect_true(is.data.frame(result))
+  # Mock requireNamespace to simulate tibble being unavailable
+  testthat::with_mocked_bindings(
+    requireNamespace = function(pkg, ...) {
+      if (pkg == "tibble") return(FALSE)
+      base::requireNamespace(pkg, ...)
+    },
+    .package = "base",
+    {
+      result <- compare_images(img, img)
+      expect_true(is.data.frame(result))
+      expect_false(inherits(result, "tbl_df"))
+    }
+  )
 })

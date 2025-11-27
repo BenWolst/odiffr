@@ -1,10 +1,5 @@
 # Test helpers for odiffr
 
-# Get path to test image
-test_image_path <- function(name) {
-  system.file("extdata", "test-images", name, package = "odiffr")
-}
-
 # Skip if odiff is not available
 skip_if_no_odiff <- function() {
   if (!odiff_available()) {
