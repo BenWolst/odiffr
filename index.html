@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,6 +73,9 @@
 <strong>Flexible</strong>: Accepts file paths or magick-image objects</li>
 <li>
 <strong>Configurable</strong>: Threshold, antialiasing detection, region ignoring</li>
+<li>
+<strong>HTML reports</strong>: Generate standalone QA reports with <code><a href="reference/batch_report.html">batch_report()</a></code>
+</li>
 <li>
 <strong>testthat integration</strong>: <code><a href="reference/expect_images.html">expect_images_match()</a></code> and <code><a href="reference/expect_images.html">expect_images_differ()</a></code> for visual regression testing</li>
 </ul>
@@ -190,9 +193,20 @@
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_images_batch.html">compare_images_batch</a></span><span class="op">(</span><span class="va">pairs</span>, parallel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="with-magick-package">With magick Package<a class="anchor" aria-label="anchor" href="#with-magick-package"></a>
+<h3 id="html-reports">HTML Reports<a class="anchor" aria-label="anchor" href="#html-reports"></a>
 </h3>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate HTML report for batch results</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_image_dirs.html">compare_image_dirs</a></span><span class="op">(</span><span class="st">"baseline/"</span>, <span class="st">"current/"</span>, diff_dir <span class="op">=</span> <span class="st">"diffs/"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Self-contained report with embedded images</span></span>
+<span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span>, embed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="with-magick-package">With magick Package<a class="anchor" aria-label="anchor" href="#with-magick-package"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/magick/" class="external-link">magick</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compare magick-image objects directly</span></span>
@@ -204,7 +218,7 @@
 <div class="section level3">
 <h3 id="visual-regression-testing">Visual Regression Testing<a class="anchor" aria-label="anchor" href="#visual-regression-testing"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://testthat.r-lib.org" class="external-link">testthat</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/BenWolst/odiffr" class="external-link">odiffr</a></span><span class="op">)</span></span>
 <span></span>
@@ -229,7 +243,7 @@
 <div class="section level2">
 <h2 id="binary-management">Binary Management<a class="anchor" aria-label="anchor" href="#binary-management"></a>
 </h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check if Odiff is available</span></span>
 <span><span class="fu"><a href="reference/odiff_available.html">odiff_available</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -287,7 +301,7 @@
 <li>
 <strong>Base R core</strong>: Zero external runtime dependencies for core functions</li>
 </ul>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pin to a specific validated binary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>odiffr.path <span class="op">=</span> <span class="st">"/validated/bin/odiff-4.1.2"</span><span class="op">)</span></span>
 <span></span>

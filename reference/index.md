@@ -16,6 +16,11 @@
 - [`ignore_region()`](https://benwolst.github.io/odiffr/reference/ignore_region.md)
   : Create an Ignore Region
 
+## Reporting
+
+- [`batch_report()`](https://benwolst.github.io/odiffr/reference/batch_report.md)
+  : Generate HTML Report for Batch Comparison Results
+
 ## testthat Expectations
 
 - [`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.md)

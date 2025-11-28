@@ -188,6 +188,40 @@ results <- compare_image_dirs("baseline/", "current/", parallel = TRUE)
 
 Note: On Windows, `parallel = TRUE` falls back to sequential processing.
 
+### HTML Reports
+
+Generate standalone HTML reports for QA review:
+
+``` r
+# Run batch comparison with diff images
+results <- compare_image_dirs(
+  "baseline/",
+  "current/",
+  diff_dir = "diffs/"
+)
+
+# Generate HTML report (links to diff images)
+batch_report(results, output_file = "qa-report.html")
+
+# Self-contained report with embedded images (for sharing)
+batch_report(results, output_file = "qa-report.html", embed = TRUE)
+
+# Customize the report
+batch_report(
+  results,
+  output_file = "report.html",
+
+  title = "Dashboard Visual Regression",
+  n_worst = 20,        # Show top 20 failures
+
+  show_all = TRUE      # Include all comparisons, not just failures
+)
+```
+
+Reports include: - Pass/fail statistics with visual cards - Failure
+reason breakdown - Diff statistics (min, median, mean, max) - Worst
+offenders table with thumbnails
+
 ## Working with magick
 
 Odiffr integrates with the
