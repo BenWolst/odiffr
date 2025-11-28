@@ -1,3 +1,15 @@
+# Odiffr 0.4.0
+
+## HTML Diff Reports
+
+* `batch_report()`: Generate standalone HTML reports from batch comparison
+  results. Reports include pass/fail statistics, failure reason breakdown,
+  diff statistics, and thumbnails of worst offenders.
+* Configurable image embedding: Use `embed = TRUE` for self-contained reports
+  with base64-encoded images, or `embed = FALSE` (default) to link to files.
+* Customizable: Set report title, number of worst offenders to display, and
+  optionally include all comparisons (not just failures) with `show_all = TRUE`.
+
 # Odiffr 0.3.0
 
 ## Directory Comparison
