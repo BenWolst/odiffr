@@ -134,12 +134,58 @@ results <- compare_images_batch(pairs, parallel = TRUE)
 ### HTML Reports
 
 ```r
-# Generate HTML report for batch results
+# One-liner: compare directories and generate HTML report
+compare_dirs_report("baseline/", "current/")
+# -> Creates diffs/ directory with diff images and report.html
+
+# Or step-by-step for more control
 results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
 batch_report(results, output_file = "qa-report.html")
 
 # Self-contained report with embedded images
 batch_report(results, output_file = "qa-report.html", embed = TRUE)
+```
+
+### CI Integration
+
+Run visual regression tests in GitHub Actions and upload diff artifacts:
+
+```yaml
+# .github/workflows/visual-regression.yaml
+name: Visual Regression
+
+on: [push, pull_request]
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+
+      - name: Install dependencies
+        run: |
+          install.packages(c("odiffr", "webshot2"))
+          odiffr::odiffr_update()
+        shell: Rscript {0}
+
+      - name: Generate screenshots
+        run: Rscript scripts/generate-screenshots.R
+
+      - name: Compare images
+        run: |
+          library(odiffr)
+          results <- compare_dirs_report("baseline/", "current/")
+          if (any(!results$match)) stop("Visual regression detected!")
+        shell: Rscript {0}
+
+      - name: Upload diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: diffs/
 ```
 
 ### With magick Package
