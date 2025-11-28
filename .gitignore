@@ -33,3 +33,4 @@ CLAUDE.md
 .claude/
 cran-comments.md
 tests/testthat/_odiffr/
+inst/ci-bench/diffs/
