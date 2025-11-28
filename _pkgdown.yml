@@ -18,6 +18,10 @@ reference:
       - odiff_run
       - ignore_region
 
+  - title: Reporting
+    contents:
+      - batch_report
+
   - title: testthat Expectations
     contents:
       - expect_images_match

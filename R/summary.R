@@ -53,7 +53,7 @@ summary.odiffr_batch <- function(object, n_worst = 5, ...) {
   # Validate inputs
   stopifnot(inherits(object, "odiffr_batch"))
 
-  n_worst <- as.integer(n_worst)
+  n_worst <- suppressWarnings(as.integer(n_worst))
   if (is.na(n_worst) || n_worst < 0) {
     stop("n_worst must be a non-negative integer.", call. = FALSE)
   }

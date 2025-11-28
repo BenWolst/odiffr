@@ -16,6 +16,7 @@ Fast pixel-by-pixel image comparison for R, powered by [odiff](https://github.co
 - **Cross-platform**: Works on Windows, macOS (Intel & Apple Silicon), and Linux
 - **Flexible**: Accepts file paths or magick-image objects
 - **Configurable**: Threshold, antialiasing detection, region ignoring
+- **HTML reports**: Generate standalone QA reports with `batch_report()`
 - **testthat integration**: `expect_images_match()` and `expect_images_differ()` for visual regression testing
 
 ## Installation
@@ -128,6 +129,17 @@ summary(results)
 
 # Use parallel processing (Unix only)
 results <- compare_images_batch(pairs, parallel = TRUE)
+```
+
+### HTML Reports
+
+```r
+# Generate HTML report for batch results
+results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
+batch_report(results, output_file = "qa-report.html")
+
+# Self-contained report with embedded images
+batch_report(results, output_file = "qa-report.html", embed = TRUE)
 ```
 
 ### With magick Package
