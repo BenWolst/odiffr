@@ -16,6 +16,8 @@ reference:
       - compare_image_dirs
       - compare_dirs_report
       - summary.odiffr_batch
+      - failed_pairs
+      - passed_pairs
       - odiff_run
       - ignore_region
 
