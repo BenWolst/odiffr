@@ -3,6 +3,7 @@
 S3method(print,odiff_info)
 S3method(print,odiff_region)
 S3method(print,odiff_result)
+export(compare_image_dirs)
 export(compare_images)
 export(compare_images_batch)
 export(expect_images_differ)

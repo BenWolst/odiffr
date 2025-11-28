@@ -202,3 +202,126 @@ compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
     combined
   }
 }
+
+#' Compare Images in Two Directories
+#'
+#' Compare all images in a baseline directory against corresponding images in a
+#' current directory. Files are matched by relative path (including
+#' subdirectories when `recursive = TRUE`).
+#'
+#' @param baseline_dir Path to the directory containing baseline images.
+#' @param current_dir Path to the directory containing current images to
+#'   compare against baseline.
+#' @param pattern Regular expression pattern to match image files. Default
+#'   matches common image formats (PNG, JPEG, WEBP, TIFF).
+#' @param recursive Logical; if `TRUE`, search subdirectories recursively.
+#'   Default is `FALSE`.
+#' @param diff_dir Directory to save diff images. If `NULL`, no diff images
+#'   are created.
+#' @param ... Additional arguments passed to [compare_images_batch()].
+#'
+#' @return A tibble (if available) or data.frame with one row per comparison,
+#'   containing all columns from [compare_images()] plus a `pair_id` column.
+#'
+#' @details
+#' The baseline directory is the source of truth. For each image found in
+#' `baseline_dir` matching `pattern`:
+#' \itemize{
+#'   \item If a corresponding file exists in `current_dir` (same relative
+#'     path), it is included in the comparison.
+#'   \item If the file is missing from `current_dir`, a warning is issued and
+#'     the file is excluded from results.
+#' }
+#'
+#' Files that exist only in `current_dir` (not in `baseline_dir`) are silently
+#' ignored.
+#'
+#' @seealso [compare_images_batch()] for comparing explicit pairs,
+#'   [compare_images()] for single comparisons.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Compare all images in two directories
+#' results <- compare_image_dirs("baseline/", "current/")
+#'
+#' # Only compare PNG files
+#' results <- compare_image_dirs("baseline/", "current/", pattern = "\\.png$")
+#'
+#' # Include subdirectories and save diff images
+#' results <- compare_image_dirs(
+#'   "baseline/",
+#'   "current/",
+#'   recursive = TRUE,
+#'   diff_dir = "diffs/"
+#' )
+#'
+#' # Check which comparisons failed
+#' results[!results$match, ]
+#' }
+compare_image_dirs <- function(baseline_dir,
+                               current_dir,
+                               pattern = "\\.(png|jpe?g|webp|tiff?)$",
+                               recursive = FALSE,
+                               diff_dir = NULL,
+                               ...) {
+  # Validate directories
+  .validate_directory(baseline_dir, "baseline_dir")
+  .validate_directory(current_dir, "current_dir")
+
+  # Find baseline images
+  baseline_files <- list.files(
+    baseline_dir,
+    pattern = pattern,
+    recursive = recursive,
+    full.names = FALSE,
+    ignore.case = TRUE
+  )
+
+  if (length(baseline_files) == 0) {
+    stop("No images found in baseline_dir matching pattern: ", pattern,
+         call. = FALSE)
+  }
+
+  # Build pairs
+  pairs <- data.frame(
+    img1 = file.path(baseline_dir, baseline_files),
+    img2 = file.path(current_dir, baseline_files),
+    stringsAsFactors = FALSE
+  )
+
+  # Check for missing current files
+  missing <- !file.exists(pairs$img2)
+  if (any(missing)) {
+    n_missing <- sum(missing)
+    missing_files <- baseline_files[missing]
+    shown <- missing_files[seq_len(min(3, n_missing))]
+    warning(
+      n_missing, " file(s) missing from current_dir: ",
+      paste(shown, collapse = ", "),
+      if (n_missing > 3) "..." else "",
+      call. = FALSE
+    )
+  }
+
+  # Filter to existing pairs only
+  pairs <- pairs[!missing, , drop = FALSE]
+
+  if (nrow(pairs) == 0) {
+    stop("No matching image pairs found.", call. = FALSE)
+  }
+
+  # Delegate to batch
+  compare_images_batch(pairs, diff_dir = diff_dir, ...)
+}
+
+# Internal helper to validate directory arguments
+.validate_directory <- function(path, arg_name) {
+  if (!is.character(path) || length(path) != 1) {
+    stop(arg_name, " must be a single directory path.", call. = FALSE)
+  }
+  if (!dir.exists(path)) {
+    stop(arg_name, " does not exist: ", path, call. = FALSE)
+  }
+}
