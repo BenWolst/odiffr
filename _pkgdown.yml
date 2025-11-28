@@ -16,6 +16,10 @@ reference:
       - odiff_run
       - ignore_region
 
+  - title: testthat Expectations
+    contents:
+      - expect_images_match
+
   - title: Binary Management
     contents:
       - find_odiff
