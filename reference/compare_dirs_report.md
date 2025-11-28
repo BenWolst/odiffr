@@ -14,6 +14,7 @@ compare_dirs_report(
   parallel = FALSE,
   title = "odiffr Comparison Report",
   embed = FALSE,
+  relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
   ...
@@ -54,6 +55,12 @@ compare_dirs_report(
 
   Logical; if `TRUE`, embed images as base64 data URIs for a
   self-contained report. If `FALSE` (default), link to image files.
+
+- relative_paths:
+
+  Logical; if `TRUE`, use relative paths for images in the HTML report.
+  Makes reports portable without embedding. Ignored when `embed = TRUE`.
+  Default: `FALSE`.
 
 - n_worst:
 

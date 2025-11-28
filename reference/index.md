@@ -13,6 +13,10 @@
 - [`summary(`*`<odiffr_batch>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
   [`print(`*`<odiffr_batch_summary>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
   : Summarize Batch Comparison Results
+- [`failed_pairs()`](https://benwolst.github.io/odiffr/reference/failed_pairs.md)
+  : Get Failed Comparisons from Batch Results
+- [`passed_pairs()`](https://benwolst.github.io/odiffr/reference/passed_pairs.md)
+  : Get Passed Comparisons from Batch Results
 - [`odiff_run()`](https://benwolst.github.io/odiffr/reference/odiff_run.md)
   : Run odiff Command (Low-Level)
 - [`ignore_region()`](https://benwolst.github.io/odiffr/reference/ignore_region.md)

@@ -149,6 +149,30 @@ results <- compare_image_dirs("baseline/", "current/", recursive = TRUE)
 results <- compare_image_dirs("baseline/", "current/", pattern = "\\.png$")
 ```
 
+Note:
+[`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md)
+matches files by name in both directories. If there are files in
+`current/` with no matching baseline, a message is printed showing which
+files were skipped.
+
+### Accessor Functions
+
+Extract passing or failing pairs from batch results:
+
+``` r
+results <- compare_image_dirs("baseline/", "current/")
+
+# Get only failures
+failures <- failed_pairs(results)
+nrow(failures)
+#> [1] 8
+
+# Get only passes
+passes <- passed_pairs(results)
+nrow(passes)
+#> [1] 42
+```
+
 ### Batch Summary
 
 Get aggregate statistics for batch results:
@@ -173,6 +197,25 @@ summary(results)
 #>   1. page_a.png (12.45%, 1245 pixels)
 #>   2. page_b.png (8.32%, 832 pixels)
 ```
+
+### Column Reference
+
+The `odiffr_batch` object returned by
+[`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md)
+and
+[`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md)
+contains these columns:
+
+| Column            | Type      | Description                                   |
+|-------------------|-----------|-----------------------------------------------|
+| `pair_id`         | integer   | Sequential comparison ID                      |
+| `match`           | logical   | `TRUE` if images match                        |
+| `reason`          | character | `"match"`, `"pixel-diff"`, or `"layout-diff"` |
+| `diff_count`      | integer   | Number of different pixels                    |
+| `diff_percentage` | numeric   | Percentage of pixels different                |
+| `diff_output`     | character | Path to diff image, or `NA`                   |
+| `img1`            | character | Path to baseline image                        |
+| `img2`            | character | Path to current image                         |
 
 ### Parallel Processing
 
@@ -206,14 +249,15 @@ batch_report(results, output_file = "qa-report.html")
 # Self-contained report with embedded images (for sharing)
 batch_report(results, output_file = "qa-report.html", embed = TRUE)
 
+# Portable report with relative paths (move report + diffs together)
+batch_report(results, output_file = "output/report.html", relative_paths = TRUE)
+
 # Customize the report
 batch_report(
   results,
   output_file = "report.html",
-
   title = "Dashboard Visual Regression",
   n_worst = 20,        # Show top 20 failures
-
   show_all = TRUE      # Include all comparisons, not just failures
 )
 ```
@@ -221,6 +265,10 @@ batch_report(
 Reports include: - Pass/fail statistics with visual cards - Failure
 reason breakdown - Diff statistics (min, median, mean, max) - Worst
 offenders table with thumbnails
+
+The `relative_paths` option is useful when you want to move or share the
+report along with the diff images folder. With relative paths, the
+report will find the images regardless of where the files are moved.
 
 ### One-Liner Workflow
 
@@ -233,7 +281,16 @@ report, use
 compare_dirs_report("baseline/", "current/")
 # -> Creates diffs/ directory with diff images and report.html
 
-# With parallel processing and embedded images
+# Self-contained report with embedded images (recommended for sharing)
+compare_dirs_report("baseline/", "current/", embed = TRUE)
+
+# See all comparisons, not just failures
+compare_dirs_report("baseline/", "current/", show_all = TRUE)
+
+# Portable report with relative image paths
+compare_dirs_report("baseline/", "current/", relative_paths = TRUE)
+
+# Combine options: parallel processing with embedded report
 compare_dirs_report("baseline/", "current/", parallel = TRUE, embed = TRUE)
 ```
 

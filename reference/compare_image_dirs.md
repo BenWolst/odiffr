@@ -72,8 +72,9 @@ The baseline directory is the source of truth. For each image found in
 - If the file is missing from `current_dir`, a warning is issued and the
   file is excluded from results.
 
-Files that exist only in `current_dir` (not in `baseline_dir`) are
-silently ignored.
+Files that exist only in `current_dir` (not in `baseline_dir`) are not
+compared, but a message is emitted noting how many such files were
+found.
 
 ## See also
 

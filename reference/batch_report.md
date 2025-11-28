@@ -12,6 +12,7 @@ batch_report(
   output_file = NULL,
   title = "odiffr Comparison Report",
   embed = FALSE,
+  relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
   ...
@@ -40,6 +41,13 @@ batch_report(
 
   If TRUE, embed diff images as base64 data URIs for a fully
   self-contained file. If FALSE (default), link to image files on disk.
+
+- relative_paths:
+
+  If TRUE and `output_file` is specified, use paths relative to the
+  report location for image `src` attributes. This makes reports
+  portable without embedding. Ignored when `embed = TRUE`. Default:
+  FALSE.
 
 - n_worst:
 

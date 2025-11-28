@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,9 +31,24 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.4.1/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="odiffr-050">Odiffr 0.5.0<a class="anchor" aria-label="anchor" href="#odiffr-050"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-5-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-5-0"></a></h3>
+<ul><li>
+<code><a href="../reference/batch_report.html">batch_report()</a></code> gains a <code>relative_paths</code> parameter. When <code>TRUE</code>, image paths in HTML reports are relative to the report location, making reports portable without embedding images.</li>
+<li>
+<code><a href="../reference/compare_image_dirs.html">compare_image_dirs()</a></code> now emits a message when files in <code>current_dir</code> have no corresponding baseline, helping catch missing or extra images early.</li>
+<li>New accessor functions <code><a href="../reference/failed_pairs.html">failed_pairs()</a></code> and <code><a href="../reference/passed_pairs.html">passed_pairs()</a></code> make it easy to filter batch comparison results.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-5-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-5-0"></a></h3>
+<ul><li>Expanded README and vignette coverage for batch workflows, HTML reports, and CI/testthat integration, including examples using <code>embed = TRUE</code>, <code>show_all = TRUE</code>, and <code>relative_paths = TRUE</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.1" id="odiffr-041">Odiffr 0.4.1<a class="anchor" aria-label="anchor" href="#odiffr-041"></a></h2>
 <div class="section level3">

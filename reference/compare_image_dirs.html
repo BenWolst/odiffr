@@ -11,7 +11,7 @@ subdirectories when recursive = TRUE)."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,7 @@ subdirectories when recursive = TRUE)."><meta property="og:image" content="https
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Compare Images in Two Directories</h1>
-      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.4.1/R/compare_images.R" class="external-link"><code>R/compare_images.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.0/R/compare_images.R" class="external-link"><code>R/compare_images.R</code></a></small>
       <div class="d-none name"><code>compare_image_dirs.Rd</code></div>
     </div>
 
@@ -107,8 +107,8 @@ containing all columns from <code><a href="compare_images.html">compare_images()
 path), it is included in the comparison.</p></li>
 <li><p>If the file is missing from <code>current_dir</code>, a warning is issued and
 the file is excluded from results.</p></li>
-</ul><p>Files that exist only in <code>current_dir</code> (not in <code>baseline_dir</code>) are silently
-ignored.</p>
+</ul><p>Files that exist only in <code>current_dir</code> (not in <code>baseline_dir</code>) are not
+compared, but a message is emitted noting how many such files were found.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

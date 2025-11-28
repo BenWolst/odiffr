@@ -116,7 +116,10 @@ pairs <- data.frame(
 )
 
 results <- compare_images_batch(pairs, diff_dir = "diffs/")
-results[!results$match, ]  # Show failures
+
+# Extract failures or passes
+failed_pairs(results)
+passed_pairs(results)
 
 # Compare entire directories
 results <- compare_image_dirs("baseline/", "current/", recursive = TRUE)
@@ -144,6 +147,9 @@ batch_report(results, output_file = "qa-report.html")
 
 # Self-contained report with embedded images
 batch_report(results, output_file = "qa-report.html", embed = TRUE)
+
+# Portable report with relative image paths
+batch_report(results, output_file = "output/report.html", relative_paths = TRUE)
 ```
 
 ### CI Integration

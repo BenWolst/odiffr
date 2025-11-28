@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -178,7 +178,10 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_images_batch.html">compare_images_batch</a></span><span class="op">(</span><span class="va">pairs</span>, diff_dir <span class="op">=</span> <span class="st">"diffs/"</span><span class="op">)</span></span>
-<span><span class="va">results</span><span class="op">[</span><span class="op">!</span><span class="va">results</span><span class="op">$</span><span class="va">match</span>, <span class="op">]</span>  <span class="co"># Show failures</span></span>
+<span></span>
+<span><span class="co"># Extract failures or passes</span></span>
+<span><span class="fu"><a href="reference/failed_pairs.html">failed_pairs</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/passed_pairs.html">passed_pairs</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compare entire directories</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_image_dirs.html">compare_image_dirs</a></span><span class="op">(</span><span class="st">"baseline/"</span>, <span class="st">"current/"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -205,7 +208,10 @@
 <span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Self-contained report with embedded images</span></span>
-<span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span>, embed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span>, embed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Portable report with relative image paths</span></span>
+<span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"output/report.html"</span>, relative_paths <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="ci-integration">CI Integration<a class="anchor" aria-label="anchor" href="#ci-integration"></a>

@@ -11,7 +11,7 @@ thumbnails of the worst offenders."><meta property="og:image" content="https://b
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,7 @@ thumbnails of the worst offenders."><meta property="og:image" content="https://b
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Generate HTML Report for Batch Comparison Results</h1>
-      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.4.1/R/report.R" class="external-link"><code>R/report.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.0/R/report.R" class="external-link"><code>R/report.R</code></a></small>
       <div class="d-none name"><code>batch_report.Rd</code></div>
     </div>
 
@@ -52,6 +52,7 @@ thumbnails of the worst offenders.</p>
 <span>  output_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"odiffr Comparison Report"</span>,</span>
 <span>  embed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  relative_paths <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_worst <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  show_all <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -79,6 +80,13 @@ a character string.</p></dd>
 <dt id="arg-embed">embed<a class="anchor" aria-label="anchor" href="#arg-embed"></a></dt>
 <dd><p>If TRUE, embed diff images as base64 data URIs for a fully
 self-contained file. If FALSE (default), link to image files on disk.</p></dd>
+
+
+<dt id="arg-relative-paths">relative_paths<a class="anchor" aria-label="anchor" href="#arg-relative-paths"></a></dt>
+<dd><p>If TRUE and <code>output_file</code> is specified, use paths
+relative to the report location for image <code>src</code> attributes. This makes
+reports portable without embedding. Ignored when <code>embed = TRUE</code>. Default:
+FALSE.</p></dd>
 
 
 <dt id="arg-n-worst">n_worst<a class="anchor" aria-label="anchor" href="#arg-n-worst"></a></dt>
