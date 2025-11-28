@@ -270,6 +270,30 @@ test_that("compare_images returns plain data.frame when tibble is unavailable", 
   )
 })
 
+test_that("compare_images_batch returns plain data.frame when tibble is unavailable", {
+  skip_if_no_odiff()
+
+  img <- create_test_image(20, 20, "blue")
+  on.exit(unlink(img), add = TRUE)
+
+  pairs <- data.frame(img1 = img, img2 = img, stringsAsFactors = FALSE)
+
+  # Mock requireNamespace to simulate tibble being unavailable
+  testthat::with_mocked_bindings(
+    requireNamespace = function(pkg, ...) {
+      if (pkg == "tibble") return(FALSE)
+      base::requireNamespace(pkg, ...)
+    },
+    .package = "base",
+    {
+      result <- compare_images_batch(pairs)
+      expect_true(is.data.frame(result))
+      expect_false(inherits(result, "tbl_df"))
+      expect_s3_class(result, "odiffr_batch")
+    }
+  )
+})
+
 # Tests for compare_image_dirs() -----------------------------------------
 
 test_that("compare_image_dirs compares matching directories", {
