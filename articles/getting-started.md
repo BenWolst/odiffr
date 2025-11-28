@@ -222,6 +222,48 @@ Reports include: - Pass/fail statistics with visual cards - Failure
 reason breakdown - Diff statistics (min, median, mean, max) - Worst
 offenders table with thumbnails
 
+### One-Liner Workflow
+
+For the common workflow of comparing directories and generating a
+report, use
+[`compare_dirs_report()`](https://benwolst.github.io/odiffr/reference/compare_dirs_report.md):
+
+``` r
+# Compare and generate report in one step
+compare_dirs_report("baseline/", "current/")
+# -> Creates diffs/ directory with diff images and report.html
+
+# With parallel processing and embedded images
+compare_dirs_report("baseline/", "current/", parallel = TRUE, embed = TRUE)
+```
+
+### CI Integration
+
+The
+[`compare_dirs_report()`](https://benwolst.github.io/odiffr/reference/compare_dirs_report.md)
+one-liner is ideal for CI pipelines:
+
+``` r
+# In your CI script
+results <- compare_dirs_report("baseline/", "current/")
+
+# Fail the build if any images differ
+if (any(!results$match)) {
+  stop("Visual regression detected! See diffs/ for details.")
+}
+```
+
+For GitHub Actions, upload `diffs/` as an artifact on failure:
+
+``` yaml
+- name: Upload diffs
+  if: failure()
+  uses: actions/upload-artifact@v4
+  with:
+    name: visual-diffs
+    path: diffs/
+```
+
 ## Working with magick
 
 Odiffr integrates with the

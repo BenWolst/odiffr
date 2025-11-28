@@ -8,6 +8,8 @@
   : Compare Multiple Image Pairs
 - [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md)
   : Compare Images in Two Directories
+- [`compare_dirs_report()`](https://benwolst.github.io/odiffr/reference/compare_dirs_report.md)
+  : Compare Directories and Generate HTML Report
 - [`summary(`*`<odiffr_batch>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
   [`print(`*`<odiffr_batch_summary>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
   : Summarize Batch Comparison Results

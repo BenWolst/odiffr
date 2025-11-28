@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -196,7 +196,11 @@
 <h3 id="html-reports">HTML Reports<a class="anchor" aria-label="anchor" href="#html-reports"></a>
 </h3>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Generate HTML report for batch results</span></span>
+<code class="sourceCode R"><span><span class="co"># One-liner: compare directories and generate HTML report</span></span>
+<span><span class="fu"><a href="reference/compare_dirs_report.html">compare_dirs_report</a></span><span class="op">(</span><span class="st">"baseline/"</span>, <span class="st">"current/"</span><span class="op">)</span></span>
+<span><span class="co"># -&gt; Creates diffs/ directory with diff images and report.html</span></span>
+<span></span>
+<span><span class="co"># Or step-by-step for more control</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_image_dirs.html">compare_image_dirs</a></span><span class="op">(</span><span class="st">"baseline/"</span>, <span class="st">"current/"</span>, diff_dir <span class="op">=</span> <span class="st">"diffs/"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span><span class="op">)</span></span>
 <span></span>
@@ -204,9 +208,49 @@
 <span><span class="fu"><a href="reference/batch_report.html">batch_report</a></span><span class="op">(</span><span class="va">results</span>, output_file <span class="op">=</span> <span class="st">"qa-report.html"</span>, embed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
+<h3 id="ci-integration">CI Integration<a class="anchor" aria-label="anchor" href="#ci-integration"></a>
+</h3>
+<p>Run visual regression tests in GitHub Actions and upload diff artifacts:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># .github/workflows/visual-regression.yaml</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">name</span><span class="kw">:</span><span class="at"> Visual Regression</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">on</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">push</span><span class="kw">,</span><span class="at"> pull_request</span><span class="kw">]</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="at">  </span><span class="fu">visual-test</span><span class="kw">:</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="at">    </span><span class="fu">runs-on</span><span class="kw">:</span><span class="at"> ubuntu-latest</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="at">    </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/checkout@v4</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> r-lib/actions/setup-r@v2</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Install dependencies</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="fu">        run</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a>          install.packages(c("odiffr", "webshot2"))</span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a>          odiffr::odiffr_update()</span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="at">        </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> Rscript {0}</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Generate screenshots</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> Rscript scripts/generate-screenshots.R</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Compare images</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="fu">        run</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a>          library(odiffr)</span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a>          results &lt;- compare_dirs_report("baseline/", "current/")</span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a>          if (any(!results$match)) stop("Visual regression detected!")</span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="at">        </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> Rscript {0}</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Upload diffs</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="at">        </span><span class="fu">if</span><span class="kw">:</span><span class="at"> failure()</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/upload-artifact@v4</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="at">        </span><span class="fu">with</span><span class="kw">:</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="at">          </span><span class="fu">name</span><span class="kw">:</span><span class="at"> visual-diffs</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="at">          </span><span class="fu">path</span><span class="kw">:</span><span class="at"> diffs/</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="with-magick-package">With magick Package<a class="anchor" aria-label="anchor" href="#with-magick-package"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/magick/" class="external-link">magick</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compare magick-image objects directly</span></span>
@@ -218,7 +262,7 @@
 <div class="section level3">
 <h3 id="visual-regression-testing">Visual Regression Testing<a class="anchor" aria-label="anchor" href="#visual-regression-testing"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://testthat.r-lib.org" class="external-link">testthat</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/BenWolst/odiffr" class="external-link">odiffr</a></span><span class="op">)</span></span>
 <span></span>
@@ -243,7 +287,7 @@
 <div class="section level2">
 <h2 id="binary-management">Binary Management<a class="anchor" aria-label="anchor" href="#binary-management"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check if Odiff is available</span></span>
 <span><span class="fu"><a href="reference/odiff_available.html">odiff_available</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -301,7 +345,7 @@
 <li>
 <strong>Base R core</strong>: Zero external runtime dependencies for core functions</li>
 </ul>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pin to a specific validated binary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>odiffr.path <span class="op">=</span> <span class="st">"/validated/bin/odiff-4.1.2"</span><span class="op">)</span></span>
 <span></span>
