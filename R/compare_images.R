@@ -122,6 +122,10 @@ compare_images <- function(img1, img2,
 #' @param diff_dir Directory to save diff images. If `NULL`, no diff images
 #'   are created. If provided, diff images are named based on the input
 #'   file names.
+#' @param parallel Logical; if `TRUE`, compare images in parallel using
+#'   multiple CPU cores. Uses `parallel::mclapply` on Unix systems (macOS,
+#'   Linux) and falls back to sequential processing on Windows. Default is
+#'   `FALSE`.
 #' @param ... Additional arguments passed to [compare_images()].
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
@@ -144,10 +148,13 @@ compare_images <- function(img1, img2,
 #' # Compare all pairs
 #' results <- compare_images_batch(pairs, diff_dir = "diffs/")
 #'
+#' # Compare in parallel (Unix only)
+#' results <- compare_images_batch(pairs, parallel = TRUE)
+#'
 #' # Check which comparisons failed
 #' results[!results$match, ]
 #' }
-compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
+compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) {
   # Handle data.frame input
   if (is.data.frame(pairs)) {
     if (!all(c("img1", "img2") %in% names(pairs))) {
@@ -168,16 +175,16 @@ compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
     dir.create(diff_dir, recursive = TRUE)
   }
 
-  # Compare each pair
-  results <- lapply(seq_along(pairs_list), function(i) {
+  # Define comparison function for each pair
+  compare_one <- function(i) {
     pair <- pairs_list[[i]]
 
     # Generate diff output path if diff_dir is provided
     diff_output <- NULL
     if (!is.null(diff_dir)) {
-      # Use basename of img2 for diff filename
+      # Include index to prevent filename collisions (especially in parallel)
       base_name <- tools::file_path_sans_ext(basename(pair$img2))
-      diff_output <- file.path(diff_dir, paste0(base_name, "_diff.png"))
+      diff_output <- file.path(diff_dir, sprintf("%03d_%s_diff.png", i, base_name))
     }
 
     result <- compare_images(
@@ -190,7 +197,33 @@ compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
     # Add pair_id
     result$pair_id <- i
     result
-  })
+  }
+
+  # Compare pairs (parallel or sequential)
+  if (isTRUE(parallel) && .Platform$OS.type == "unix") {
+    # Use parallel::mclapply on Unix systems
+    # Respect mc.cores option if set, otherwise detect cores
+    n_cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
+    if (is.na(n_cores) || n_cores < 1) n_cores <- 1
+
+    # Cap cores by number of pairs (no point spawning more workers than tasks)
+    n_cores <- min(n_cores, length(pairs_list))
+
+    # Respect CRAN check limits (max 2 cores during R CMD check)
+    check_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", unset = "")
+    if (nzchar(check_limit) && check_limit %in% c("TRUE", "true", "warn", "false")) {
+      n_cores <- min(n_cores, 2L)
+    }
+
+    results <- parallel::mclapply(
+      seq_along(pairs_list),
+      compare_one,
+      mc.cores = n_cores
+    )
+  } else {
+    # Sequential processing (Windows or parallel = FALSE)
+    results <- lapply(seq_along(pairs_list), compare_one)
+  }
 
   # Combine results
   combined <- do.call(rbind, results)
@@ -226,6 +259,8 @@ compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
 #'   Default is `FALSE`.
 #' @param diff_dir Directory to save diff images. If `NULL`, no diff images
 #'   are created.
+#' @param parallel Logical; if `TRUE`, compare images in parallel. See
+#'   [compare_images_batch()] for details.
 #' @param ... Additional arguments passed to [compare_images_batch()].
 #'
 #' @return A tibble (if available) or data.frame with one row per comparison,
@@ -273,6 +308,7 @@ compare_image_dirs <- function(baseline_dir,
                                pattern = "\\.(png|jpe?g|webp|tiff?)$",
                                recursive = FALSE,
                                diff_dir = NULL,
+                               parallel = FALSE,
                                ...) {
   # Validate directories
   .validate_directory(baseline_dir, "baseline_dir")
@@ -321,7 +357,7 @@ compare_image_dirs <- function(baseline_dir,
   }
 
   # Delegate to batch
-  compare_images_batch(pairs, diff_dir = diff_dir, ...)
+  compare_images_batch(pairs, diff_dir = diff_dir, parallel = parallel, ...)
 }
 
 # Internal helper to validate directory arguments

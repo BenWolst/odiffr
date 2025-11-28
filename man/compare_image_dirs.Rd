@@ -10,6 +10,7 @@ compare_image_dirs(
   pattern = "\\\\.(png|jpe?g|webp|tiff?)$",
   recursive = FALSE,
   diff_dir = NULL,
+  parallel = FALSE,
   ...
 )
 }
@@ -27,6 +28,9 @@ Default is \code{FALSE}.}
 
 \item{diff_dir}{Directory to save diff images. If \code{NULL}, no diff images
 are created.}
+
+\item{parallel}{Logical; if \code{TRUE}, compare images in parallel. See
+\code{\link[=compare_images_batch]{compare_images_batch()}} for details.}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_images_batch]{compare_images_batch()}}.}
 }

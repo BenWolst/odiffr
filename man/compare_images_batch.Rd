@@ -4,7 +4,7 @@
 \alias{compare_images_batch}
 \title{Compare Multiple Image Pairs}
 \usage{
-compare_images_batch(pairs, diff_dir = NULL, ...)
+compare_images_batch(pairs, diff_dir = NULL, parallel = FALSE, ...)
 }
 \arguments{
 \item{pairs}{A data.frame with columns \code{img1} and \code{img2} containing
@@ -13,6 +13,11 @@ file paths, or a list of named lists with \code{img1} and \code{img2} elements.}
 \item{diff_dir}{Directory to save diff images. If \code{NULL}, no diff images
 are created. If provided, diff images are named based on the input
 file names.}
+
+\item{parallel}{Logical; if \code{TRUE}, compare images in parallel using
+multiple CPU cores. Uses \code{parallel::mclapply} on Unix systems (macOS,
+Linux) and falls back to sequential processing on Windows. Default is
+\code{FALSE}.}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}}.}
 }
@@ -35,6 +40,9 @@ pairs <- data.frame(
 
 # Compare all pairs
 results <- compare_images_batch(pairs, diff_dir = "diffs/")
+
+# Compare in parallel (Unix only)
+results <- compare_images_batch(pairs, parallel = TRUE)
 
 # Check which comparisons failed
 results[!results$match, ]

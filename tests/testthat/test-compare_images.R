@@ -526,3 +526,162 @@ test_that("compare_image_dirs silently ignores extra files in current_dir", {
   # Should not warn about extra file
   expect_silent(compare_image_dirs(baseline_dir, current_dir))
 })
+
+# Tests for parallel processing -------------------------------------------
+
+test_that("compare_images_batch parallel=FALSE works (baseline)", {
+  skip_if_no_odiff()
+
+  img1 <- create_test_image(30, 30, "red")
+  img2 <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  pairs <- data.frame(
+    img1 = c(img1, img1),
+    img2 = c(img1, img2),
+    stringsAsFactors = FALSE
+  )
+
+  result <- compare_images_batch(pairs, parallel = FALSE)
+
+  expect_s3_class(result, "odiffr_batch")
+  expect_equal(nrow(result), 2)
+  expect_true(result$match[1])
+  expect_false(result$match[2])
+})
+
+test_that("compare_images_batch parallel=TRUE produces same results as sequential", {
+  skip_if_no_odiff()
+  skip_on_os("windows")  # mclapply not available on Windows
+
+  img1 <- create_test_image(30, 30, "red")
+  img2 <- create_test_image(30, 30, "blue")
+  img3 <- create_test_image(30, 30, "green")
+  on.exit(unlink(c(img1, img2, img3)), add = TRUE)
+
+  pairs <- data.frame(
+    img1 = c(img1, img1, img1),
+    img2 = c(img1, img2, img3),
+    stringsAsFactors = FALSE
+  )
+
+  result_seq <- compare_images_batch(pairs, parallel = FALSE)
+  result_par <- compare_images_batch(pairs, parallel = TRUE)
+
+  # Results should be identical
+
+  expect_equal(result_seq$match, result_par$match)
+  expect_equal(result_seq$reason, result_par$reason)
+  expect_equal(result_seq$diff_count, result_par$diff_count)
+  expect_equal(result_seq$pair_id, result_par$pair_id)
+})
+
+test_that("compare_images_batch parallel=TRUE on Windows falls back to sequential", {
+  skip_if_no_odiff()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  pairs <- data.frame(img1 = img, img2 = img, stringsAsFactors = FALSE)
+
+  # Mock Windows platform
+  testthat::with_mocked_bindings(
+    `.Platform` = list(OS.type = "windows"),
+    .package = "base",
+    {
+      # Should not error, just fall back to sequential
+      result <- compare_images_batch(pairs, parallel = TRUE)
+      expect_s3_class(result, "odiffr_batch")
+      expect_true(result$match[1])
+    }
+  )
+})
+
+test_that("compare_image_dirs passes parallel parameter through", {
+  skip_if_no_odiff()
+  skip_on_os("windows")
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img1 <- create_test_image(30, 30, "red")
+  img2 <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  file.copy(img1, file.path(baseline_dir, "a.png"))
+  file.copy(img2, file.path(baseline_dir, "b.png"))
+  file.copy(img1, file.path(current_dir, "a.png"))
+  file.copy(img2, file.path(current_dir, "b.png"))
+
+  result_seq <- compare_image_dirs(baseline_dir, current_dir, parallel = FALSE)
+  result_par <- compare_image_dirs(baseline_dir, current_dir, parallel = TRUE)
+
+  expect_equal(result_seq$match, result_par$match)
+  expect_equal(nrow(result_par), 2)
+})
+
+test_that("compare_images_batch parallel handles single pair", {
+  skip_if_no_odiff()
+  skip_on_os("windows")
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  pairs <- data.frame(img1 = img, img2 = img, stringsAsFactors = FALSE)
+
+  # Single pair should work fine with parallel
+  result <- compare_images_batch(pairs, parallel = TRUE)
+
+  expect_s3_class(result, "odiffr_batch")
+  expect_equal(nrow(result), 1)
+  expect_true(result$match[1])
+})
+
+test_that("compare_images_batch parallel maintains pair_id order", {
+  skip_if_no_odiff()
+  skip_on_os("windows")
+
+  img1 <- create_test_image(30, 30, "red")
+  img2 <- create_test_image(30, 30, "blue")
+  img3 <- create_test_image(30, 30, "green")
+  img4 <- create_test_image(30, 30, "yellow")
+  on.exit(unlink(c(img1, img2, img3, img4)), add = TRUE)
+
+  pairs <- data.frame(
+    img1 = c(img1, img2, img3, img4),
+    img2 = c(img1, img2, img3, img4),
+    stringsAsFactors = FALSE
+  )
+
+  result <- compare_images_batch(pairs, parallel = TRUE)
+
+  # pair_id should be in order 1, 2, 3, 4
+  expect_equal(result$pair_id, 1:4)
+})
+
+test_that("compare_images_batch creates distinct diff filenames", {
+  skip_if_no_odiff()
+
+  # Create images with same basename to test collision prevention
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  diff_dir <- withr::local_tempdir()
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  # Two pairs with same img2 basename
+  pairs <- data.frame(
+    img1 = c(img_red, img_red),
+    img2 = c(img_blue, img_blue),
+    stringsAsFactors = FALSE
+  )
+
+  result <- compare_images_batch(pairs, diff_dir = diff_dir)
+
+  # Both diff files should exist and be distinct
+  diff_files <- list.files(diff_dir)
+  expect_equal(length(diff_files), 2)
+  expect_equal(length(unique(diff_files)), 2)  # All distinct
+
+  # Filenames should include index prefix
+  expect_true(all(grepl("^\\d{3}_", diff_files)))
+})

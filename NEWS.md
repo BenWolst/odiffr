@@ -14,6 +14,14 @@
 * `compare_images_batch()` and `compare_image_dirs()` now return objects with
   class `odiffr_batch` for S3 method dispatch.
 
+## Parallel Batch Processing
+
+* New `parallel` parameter for `compare_images_batch()` and `compare_image_dirs()`:
+  Set `parallel = TRUE` to compare images using multiple CPU cores.
+* Uses `parallel::mclapply` on Unix systems (macOS, Linux) for faster batch
+  comparisons.
+* Automatically falls back to sequential processing on Windows.
+
 # Odiffr 0.2.0
 
 ## testthat Integration
