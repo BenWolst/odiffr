@@ -145,3 +145,53 @@ print.odiffr_batch_summary <- function(x, ...) {
 
   invisible(x)
 }
+
+
+#' Get Failed Comparisons from Batch Results
+#'
+#' Extract only the failed (non-matching) comparisons from batch results.
+#'
+#' @param object An `odiffr_batch` object from [compare_images_batch()] or
+#'   [compare_image_dirs()].
+#'
+#' @return A tibble or data.frame containing only rows where `match` is `FALSE`.
+#'
+#' @seealso [compare_images_batch()], [compare_image_dirs()], [passed_pairs()]
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' results <- compare_image_dirs("baseline/", "current/")
+#' failed <- failed_pairs(results)
+#' nrow(failed)  # Number of failures
+#' }
+failed_pairs <- function(object) {
+  stopifnot(inherits(object, "odiffr_batch"))
+  object[!object$match, ]
+}
+
+
+#' Get Passed Comparisons from Batch Results
+#'
+#' Extract only the passed (matching) comparisons from batch results.
+#'
+#' @param object An `odiffr_batch` object from [compare_images_batch()] or
+#'   [compare_image_dirs()].
+#'
+#' @return A tibble or data.frame containing only rows where `match` is `TRUE`.
+#'
+#' @seealso [compare_images_batch()], [compare_image_dirs()], [failed_pairs()]
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' results <- compare_image_dirs("baseline/", "current/")
+#' passed <- passed_pairs(results)
+#' nrow(passed)  # Number of passing comparisons
+#' }
+passed_pairs <- function(object) {
+  stopifnot(inherits(object, "odiffr_batch"))
+  object[object$match, ]
+}

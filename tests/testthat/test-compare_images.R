@@ -509,7 +509,7 @@ test_that("compare_image_dirs validates directory arguments", {
   )
 })
 
-test_that("compare_image_dirs silently ignores extra files in current_dir", {
+test_that("compare_image_dirs messages about unmatched current files", {
   skip_if_no_odiff()
 
   baseline_dir <- withr::local_tempdir()
@@ -518,13 +518,16 @@ test_that("compare_image_dirs silently ignores extra files in current_dir", {
   img <- create_test_image(30, 30, "red")
   on.exit(unlink(img), add = TRUE)
 
-  # Baseline has 1, current has 2 (extra file should be ignored)
+  # Baseline has 1, current has 2 (extra file triggers message)
   file.copy(img, file.path(baseline_dir, "common.png"))
   file.copy(img, file.path(current_dir, "common.png"))
   file.copy(img, file.path(current_dir, "extra.png"))
 
-  # Should not warn about extra file
-  expect_silent(compare_image_dirs(baseline_dir, current_dir))
+  # Should emit message about unmatched file
+  expect_message(
+    compare_image_dirs(baseline_dir, current_dir),
+    "1 file.*in current_dir have no baseline.*extra"
+  )
 })
 
 # Tests for parallel processing -------------------------------------------
@@ -804,4 +807,30 @@ test_that("compare_dirs_report creates parent directory for output_file", {
                       diff_dir = diff_dir, output_file = nested_report)
 
   expect_true(file.exists(nested_report))
+})
+
+test_that("compare_dirs_report passes relative_paths to batch_report", {
+  skip_if_no_odiff()
+
+  output_dir <- withr::local_tempdir()
+  diff_dir <- file.path(output_dir, "diffs")
+  report_file <- file.path(output_dir, "reports", "qa-report.html")
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  compare_dirs_report(baseline_dir, current_dir, diff_dir = diff_dir,
+                      output_file = report_file, relative_paths = TRUE)
+
+  html <- paste(readLines(report_file), collapse = "\n")
+
+  # Should have relative path, not absolute
+  expect_false(grepl(normalizePath(output_dir, mustWork = FALSE), html, fixed = TRUE))
+  expect_true(grepl('src="../diffs/', html) || grepl('src="diffs/', html))
 })

@@ -276,8 +276,8 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 #'     the file is excluded from results.
 #' }
 #'
-#' Files that exist only in `current_dir` (not in `baseline_dir`) are silently
-#' ignored.
+#' Files that exist only in `current_dir` (not in `baseline_dir`) are not
+#' compared, but a message is emitted noting how many such files were found.
 #'
 #' @seealso [compare_images_batch()] for comparing explicit pairs,
 #'   [compare_images()] for single comparisons.
@@ -326,6 +326,25 @@ compare_image_dirs <- function(baseline_dir,
   if (length(baseline_files) == 0) {
     stop("No images found in baseline_dir matching pattern: ", pattern,
          call. = FALSE)
+  }
+
+  # Check for unmatched files in current_dir
+  current_files <- list.files(
+    current_dir,
+    pattern = pattern,
+    recursive = recursive,
+    full.names = FALSE,
+    ignore.case = TRUE
+  )
+  unmatched <- setdiff(current_files, baseline_files)
+  if (length(unmatched) > 0) {
+    shown <- unmatched[seq_len(min(3, length(unmatched)))]
+    message(
+      sprintf("Note: %d file(s) in current_dir have no baseline: %s%s",
+              length(unmatched),
+              paste(shown, collapse = ", "),
+              if (length(unmatched) > 3) ", ..." else "")
+    )
   }
 
   # Build pairs
@@ -381,6 +400,9 @@ compare_image_dirs <- function(baseline_dir,
 #' @param title Title for the HTML report.
 #' @param embed Logical; if `TRUE`, embed images as base64 data URIs for a
 #'   self-contained report. If `FALSE` (default), link to image files.
+#' @param relative_paths Logical; if `TRUE`, use relative paths for images
+#'   in the HTML report. Makes reports portable without embedding. Ignored
+#'   when `embed = TRUE`. Default: `FALSE`.
 #' @param n_worst Number of worst offenders to display in the report.
 #' @param show_all Logical; if `TRUE`, show all comparisons in the report,
 #'   not just failures.
@@ -413,6 +435,7 @@ compare_dirs_report <- function(baseline_dir,
                                 parallel = FALSE,
                                 title = "odiffr Comparison Report",
                                 embed = FALSE,
+                                relative_paths = FALSE,
                                 n_worst = 10,
                                 show_all = FALSE,
                                 ...) {
@@ -435,6 +458,7 @@ compare_dirs_report <- function(baseline_dir,
     output_file = output_file,
     title = title,
     embed = embed,
+    relative_paths = relative_paths,
     n_worst = n_worst,
     show_all = show_all
   )

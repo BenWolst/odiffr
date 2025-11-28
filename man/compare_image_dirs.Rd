@@ -53,8 +53,8 @@ path), it is included in the comparison.
 the file is excluded from results.
 }
 
-Files that exist only in \code{current_dir} (not in \code{baseline_dir}) are silently
-ignored.
+Files that exist only in \code{current_dir} (not in \code{baseline_dir}) are not
+compared, but a message is emitted noting how many such files were found.
 }
 \examples{
 \dontrun{
