@@ -69,3 +69,18 @@ create_modified_image <- function(base_image, modification = "pixel") {
 
   temp_file
 }
+
+# Clean up diff directory created by expect_images_match()
+# Call this in teardown or after tests that generate diffs
+clean_diff_dir <- function(dir = NULL) {
+  if (is.null(dir)) {
+    dir <- tryCatch(
+      testthat::test_path("_odiffr"),
+      error = function(e) file.path("tests", "testthat", "_odiffr")
+    )
+  }
+  if (dir.exists(dir)) {
+    unlink(dir, recursive = TRUE)
+  }
+  invisible(NULL)
+}
