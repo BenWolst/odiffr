@@ -781,3 +781,27 @@ test_that("compare_dirs_report passes report args correctly", {
   expect_true(any(grepl("data:image/png;base64,", html)))
   expect_true(any(grepl("Custom Title", html)))
 })
+
+test_that("compare_dirs_report creates parent directory for output_file", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  file.copy(img, file.path(baseline_dir, "test.png"))
+  file.copy(img, file.path(current_dir, "test.png"))
+  on.exit(unlink(img), add = TRUE)
+
+  diff_dir <- file.path(output_dir, "diffs")
+  # output_file in a NEW directory that doesn't exist yet
+  nested_report <- file.path(output_dir, "reports", "nested", "report.html")
+
+  expect_false(dir.exists(dirname(nested_report)))
+
+  compare_dirs_report(baseline_dir, current_dir,
+                      diff_dir = diff_dir, output_file = nested_report)
+
+  expect_true(file.exists(nested_report))
+})
