@@ -1,3 +1,16 @@
+# Odiffr 0.4.1
+
+## New Features
+
+* `compare_dirs_report()` convenience function combines `compare_image_dirs()`
+  and `batch_report()` into a single call for the common QA workflow of
+  comparing two directories and generating an HTML report.
+
+## Documentation
+
+* Added CI integration examples showing how to run visual regression tests
+  in GitHub Actions and upload diff artifacts on failure.
+
 # Odiffr 0.4.0
 
 ## HTML Diff Reports

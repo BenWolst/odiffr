@@ -685,3 +685,99 @@ test_that("compare_images_batch creates distinct diff filenames", {
   # Filenames should include index prefix
   expect_true(all(grepl("^\\d{3}_", diff_files)))
 })
+
+# Tests for compare_dirs_report() ------------------------------------------
+
+test_that("compare_dirs_report creates diffs and report", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  diff_dir <- file.path(output_dir, "diffs")
+  results <- compare_dirs_report(baseline_dir, current_dir, diff_dir = diff_dir)
+
+  expect_s3_class(results, "odiffr_batch")
+  expect_true(dir.exists(diff_dir))
+  expect_true(file.exists(file.path(diff_dir, "report.html")))
+})
+
+test_that("compare_dirs_report respects parallel parameter", {
+  skip_if_no_odiff()
+  skip_on_os("windows")
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  file.copy(img, file.path(baseline_dir, "test.png"))
+  file.copy(img, file.path(current_dir, "test.png"))
+  on.exit(unlink(img), add = TRUE)
+
+  diff_dir <- file.path(output_dir, "diffs")
+
+  # Should not error with parallel = TRUE
+  results <- compare_dirs_report(baseline_dir, current_dir,
+                                  diff_dir = diff_dir, parallel = TRUE)
+  expect_s3_class(results, "odiffr_batch")
+})
+
+test_that("compare_dirs_report allows custom output_file", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  file.copy(img, file.path(baseline_dir, "test.png"))
+  file.copy(img, file.path(current_dir, "test.png"))
+  on.exit(unlink(img), add = TRUE)
+
+  diff_dir <- file.path(output_dir, "diffs")
+  custom_report <- file.path(output_dir, "my-report.html")
+
+  compare_dirs_report(baseline_dir, current_dir,
+                      diff_dir = diff_dir, output_file = custom_report)
+
+  expect_true(file.exists(custom_report))
+})
+
+test_that("compare_dirs_report passes report args correctly", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  output_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  diff_dir <- file.path(output_dir, "diffs")
+  report_file <- file.path(diff_dir, "report.html")
+
+  # Should not error - embed is a report arg, not passed to compare_image_dirs
+  results <- compare_dirs_report(baseline_dir, current_dir,
+                                  diff_dir = diff_dir,
+                                  embed = TRUE,
+                                  title = "Custom Title")
+
+  expect_s3_class(results, "odiffr_batch")
+  expect_true(file.exists(report_file))
+
+  # Verify report contains embedded images and custom title
+  html <- readLines(report_file)
+  expect_true(any(grepl("data:image/png;base64,", html)))
+  expect_true(any(grepl("Custom Title", html)))
+})

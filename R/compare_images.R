@@ -369,3 +369,74 @@ compare_image_dirs <- function(baseline_dir,
     stop(arg_name, " does not exist: ", path, call. = FALSE)
   }
 }
+
+#' Compare Directories and Generate HTML Report
+#'
+#' Convenience function that compares all images in two directories and
+#' generates an HTML report in one step.
+#'
+#' @inheritParams compare_image_dirs
+#' @param output_file Path for the HTML report. Defaults to
+#'   `file.path(diff_dir, "report.html")`.
+#' @param title Title for the HTML report.
+#' @param embed Logical; if `TRUE`, embed images as base64 data URIs for a
+#'   self-contained report. If `FALSE` (default), link to image files.
+#' @param n_worst Number of worst offenders to display in the report.
+#' @param show_all Logical; if `TRUE`, show all comparisons in the report,
+#'   not just failures.
+#' @param ... Additional arguments passed to [compare_image_dirs()] (e.g.
+#'   `threshold`, `antialiasing`, `pattern`, `recursive`).
+#'
+#' @return The `odiffr_batch` results (invisibly). The HTML report is written
+#'   to `output_file` as a side effect.
+#'
+#' @seealso [compare_image_dirs()], [batch_report()]
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # One-liner for QA workflow
+#' compare_dirs_report("baseline/", "current/")
+#' # -> Creates diffs/ directory with diff images and report.html
+#'
+#' # With parallel processing and embedded images
+#' compare_dirs_report("baseline/", "current/", parallel = TRUE, embed = TRUE)
+#'
+#' # Pass comparison options via ...
+#' compare_dirs_report("baseline/", "current/", threshold = 0.1, antialiasing = TRUE)
+#' }
+compare_dirs_report <- function(baseline_dir,
+                                current_dir,
+                                diff_dir = "diffs",
+                                output_file = file.path(diff_dir, "report.html"),
+                                parallel = FALSE,
+                                title = "odiffr Comparison Report",
+                                embed = FALSE,
+                                n_worst = 10,
+                                show_all = FALSE,
+                                ...) {
+  results <- compare_image_dirs(
+    baseline_dir,
+    current_dir,
+    diff_dir = diff_dir,
+    parallel = parallel,
+    ...
+  )
+
+  # Ensure parent directory of output_file exists
+  output_dir <- dirname(output_file)
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+
+  batch_report(
+    results,
+    output_file = output_file,
+    title = title,
+    embed = embed,
+    n_worst = n_worst,
+    show_all = show_all
+  )
+  invisible(results)
+}
