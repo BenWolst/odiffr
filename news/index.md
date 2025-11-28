@@ -1,5 +1,36 @@
 # Changelog
 
+## Odiffr 0.3.0
+
+### Directory Comparison
+
+- [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md):
+  Compare all images in two directories by matching relative paths.
+  Baseline directory is source of truth; missing files in current
+  directory trigger warnings and are excluded from results.
+
+### Batch Results Summary
+
+- [`summary()`](https://rdrr.io/r/base/summary.html) method for batch
+  results: Get aggregate statistics including pass/fail counts, failure
+  reason breakdown, diff statistics (min, median, mean, max), and worst
+  offenders ranked by diff percentage.
+- [`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md)
+  and
+  [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md)
+  now return objects with class `odiffr_batch` for S3 method dispatch.
+
+### Parallel Batch Processing
+
+- New `parallel` parameter for
+  [`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md)
+  and
+  [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md):
+  Set `parallel = TRUE` to compare images using multiple CPU cores.
+- Uses [`parallel::mclapply`](https://rdrr.io/r/parallel/mclapply.html)
+  on Unix systems (macOS, Linux) for faster batch comparisons.
+- Automatically falls back to sequential processing on Windows.
+
 ## Odiffr 0.2.0
 
 ### testthat Integration

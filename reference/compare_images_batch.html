@@ -9,7 +9,7 @@ testing across many screenshots."><meta property="og:image" content="https://ben
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,7 +33,7 @@ testing across many screenshots."><meta property="og:image" content="https://ben
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Compare Multiple Image Pairs</h1>
-      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.2.0/R/compare_images.R" class="external-link"><code>R/compare_images.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.3.0/R/compare_images.R" class="external-link"><code>R/compare_images.R</code></a></small>
       <div class="d-none name"><code>compare_images_batch.Rd</code></div>
     </div>
 
@@ -44,7 +44,7 @@ testing across many screenshots.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">compare_images_batch</span><span class="op">(</span><span class="va">pairs</span>, diff_dir <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">compare_images_batch</span><span class="op">(</span><span class="va">pairs</span>, diff_dir <span class="op">=</span> <span class="cn">NULL</span>, parallel <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -62,14 +62,27 @@ are created. If provided, diff images are named based on the input
 file names.</p></dd>
 
 
+<dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
+<dd><p>Logical; if <code>TRUE</code>, compare images in parallel using
+multiple CPU cores. Uses <code><a href="https://rdrr.io/r/parallel/mclapply.html" class="external-link">parallel::mclapply</a></code> on Unix systems (macOS,
+Linux) and falls back to sequential processing on Windows. Default is
+<code>FALSE</code>.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to <code><a href="compare_images.html">compare_images()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble (if available) or data.frame with one row per comparison,
-containing all columns from <code><a href="compare_images.html">compare_images()</a></code> plus a <code>pair_id</code> column.</p>
+    <p>A tibble (if available) or data.frame with class <code>odiffr_batch</code>,
+containing one row per comparison with all columns from <code><a href="compare_images.html">compare_images()</a></code>
+plus a <code>pair_id</code> column. Use <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> to get aggregate statistics.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="summary.odiffr_batch.html">summary.odiffr_batch()</a></code> for summarizing batch results,
+<code><a href="compare_image_dirs.html">compare_image_dirs()</a></code> for directory-based comparison.</p></div>
     </div>
 
     <div class="section level2">
@@ -83,6 +96,9 @@ containing all columns from <code><a href="compare_images.html">compare_images()
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compare all pairs</span></span></span>
 <span class="r-in"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">compare_images_batch</span><span class="op">(</span><span class="va">pairs</span>, diff_dir <span class="op">=</span> <span class="st">"diffs/"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Compare in parallel (Unix only)</span></span></span>
+<span class="r-in"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">compare_images_batch</span><span class="op">(</span><span class="va">pairs</span>, parallel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check which comparisons failed</span></span></span>
 <span class="r-in"><span><span class="va">results</span><span class="op">[</span><span class="op">!</span><span class="va">results</span><span class="op">$</span><span class="va">match</span>, <span class="op">]</span></span></span>

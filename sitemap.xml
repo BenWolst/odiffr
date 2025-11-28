@@ -7,6 +7,7 @@
 <url><loc>https://benwolst.github.io/odiffr/authors.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/index.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/news/index.html</loc></url>
+<url><loc>https://benwolst.github.io/odiffr/reference/compare_image_dirs.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/reference/compare_images.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/reference/compare_images_batch.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/reference/expect_images.html</loc></url>
@@ -21,5 +22,6 @@
 <url><loc>https://benwolst.github.io/odiffr/reference/odiffr_cache_path.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/reference/odiffr_clear_cache.html</loc></url>
 <url><loc>https://benwolst.github.io/odiffr/reference/odiffr_update.html</loc></url>
+<url><loc>https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.html</loc></url>
 </urlset>
 

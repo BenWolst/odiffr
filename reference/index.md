@@ -6,6 +6,11 @@
   : Compare Two Images
 - [`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md)
   : Compare Multiple Image Pairs
+- [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md)
+  : Compare Images in Two Directories
+- [`summary(`*`<odiffr_batch>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
+  [`print(`*`<odiffr_batch_summary>`*`)`](https://benwolst.github.io/odiffr/reference/summary.odiffr_batch.md)
+  : Summarize Batch Comparison Results
 - [`odiff_run()`](https://benwolst.github.io/odiffr/reference/odiff_run.md)
   : Run odiff Command (Low-Level)
 - [`ignore_region()`](https://benwolst.github.io/odiffr/reference/ignore_region.md)

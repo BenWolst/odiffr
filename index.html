@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -175,7 +175,19 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_images_batch.html">compare_images_batch</a></span><span class="op">(</span><span class="va">pairs</span>, diff_dir <span class="op">=</span> <span class="st">"diffs/"</span><span class="op">)</span></span>
-<span><span class="va">results</span><span class="op">[</span><span class="op">!</span><span class="va">results</span><span class="op">$</span><span class="va">match</span>, <span class="op">]</span>  <span class="co"># Show failures</span></span></code></pre></div>
+<span><span class="va">results</span><span class="op">[</span><span class="op">!</span><span class="va">results</span><span class="op">$</span><span class="va">match</span>, <span class="op">]</span>  <span class="co"># Show failures</span></span>
+<span></span>
+<span><span class="co"># Compare entire directories</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_image_dirs.html">compare_image_dirs</a></span><span class="op">(</span><span class="st">"baseline/"</span>, <span class="st">"current/"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get summary statistics</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
+<span><span class="co">#&gt; odiffr batch comparison: 50 pairs</span></span>
+<span><span class="co">#&gt; Passed: 42 (84.0%)</span></span>
+<span><span class="co">#&gt; Failed: 8 (16.0%)</span></span>
+<span></span>
+<span><span class="co"># Use parallel processing (Unix only)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_images_batch.html">compare_images_batch</a></span><span class="op">(</span><span class="va">pairs</span>, parallel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="with-magick-package">With magick Package<a class="anchor" aria-label="anchor" href="#with-magick-package"></a>

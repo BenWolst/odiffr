@@ -115,6 +115,18 @@ pairs <- data.frame(
 
 results <- compare_images_batch(pairs, diff_dir = "diffs/")
 results[!results$match, ]  # Show failures
+
+# Compare entire directories
+results <- compare_image_dirs("baseline/", "current/", recursive = TRUE)
+
+# Get summary statistics
+summary(results)
+#> odiffr batch comparison: 50 pairs
+#> Passed: 42 (84.0%)
+#> Failed: 8 (16.0%)
+
+# Use parallel processing (Unix only)
+results <- compare_images_batch(pairs, parallel = TRUE)
 ```
 
 ### With magick Package

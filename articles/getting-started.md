@@ -134,6 +134,60 @@ results <- compare_images_batch(pairs, diff_dir = "diffs/")
 results[!results$match, ]
 ```
 
+### Directory Comparison
+
+Compare all images in two directories by matching filenames:
+
+``` r
+# Compare baseline/ vs current/ directories
+results <- compare_image_dirs("baseline/", "current/")
+
+# Include subdirectories
+results <- compare_image_dirs("baseline/", "current/", recursive = TRUE)
+
+# Only compare PNG files
+results <- compare_image_dirs("baseline/", "current/", pattern = "\\.png$")
+```
+
+### Batch Summary
+
+Get aggregate statistics for batch results:
+
+``` r
+results <- compare_image_dirs("baseline/", "current/")
+summary(results)
+#> odiffr batch comparison: 50 pairs
+#> ───────────────────────────────────
+#> Passed: 42 (84.0%)
+#> Failed: 8 (16.0%)
+#>   - pixel-diff: 6
+#>   - layout-diff: 2
+#>
+#> Diff statistics (failed pairs):
+#>   Min:    0.15%
+#>   Median: 2.34%
+#>   Mean:   3.21%
+#>   Max:    12.45%
+#>
+#> Worst offenders:
+#>   1. page_a.png (12.45%, 1245 pixels)
+#>   2. page_b.png (8.32%, 832 pixels)
+```
+
+### Parallel Processing
+
+Speed up batch comparisons using multiple CPU cores (Unix only):
+
+``` r
+# Compare in parallel on macOS/Linux
+results <- compare_images_batch(pairs, parallel = TRUE)
+
+# Also works with directory comparison
+results <- compare_image_dirs("baseline/", "current/", parallel = TRUE)
+```
+
+Note: On Windows, `parallel = TRUE` falls back to sequential processing.
+
 ## Working with magick
 
 Odiffr integrates with the
