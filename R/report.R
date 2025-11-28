@@ -11,6 +11,10 @@
 #' @param title Report title. Default: "odiffr Comparison Report".
 #' @param embed If TRUE, embed diff images as base64 data URIs for a fully
 #'   self-contained file. If FALSE (default), link to image files on disk.
+#' @param relative_paths If TRUE and `output_file` is specified, use paths
+#'   relative to the report location for image `src` attributes. This makes
+#'   reports portable without embedding. Ignored when `embed = TRUE`. Default:
+#'   FALSE.
 #' @param n_worst Number of worst offenders to display. Default: 10.
 #' @param show_all If TRUE, include a table of all comparisons. Default: FALSE.
 #' @param ... Additional arguments passed to [summary.odiffr_batch()].
@@ -47,6 +51,7 @@ batch_report <- function(object,
                          output_file = NULL,
                          title = "odiffr Comparison Report",
                          embed = FALSE,
+                         relative_paths = FALSE,
                          n_worst = 10,
                          show_all = FALSE,
                          ...) {
@@ -67,7 +72,9 @@ batch_report <- function(object,
     summ = summ,
     title = title,
     embed = embed,
-    show_all = show_all
+    show_all = show_all,
+    output_file = output_file,
+    relative_paths = relative_paths
   )
 
 
@@ -80,14 +87,15 @@ batch_report <- function(object,
 }
 
 
-.build_html_report <- function(batch, summ, title, embed, show_all) {
+.build_html_report <- function(batch, summ, title, embed, show_all,
+                               output_file = NULL, relative_paths = FALSE) {
   paste0(
     .html_head(title),
     "<body>\n",
     .html_header(title),
     .html_summary_section(summ),
-    .html_worst_section(summ, embed),
-    if (show_all) .html_all_results_section(batch, embed) else "",
+    .html_worst_section(summ, embed, output_file, relative_paths),
+    if (show_all) .html_all_results_section(batch, embed, output_file, relative_paths) else "",
     .html_footer(),
     "</body>\n</html>"
   )
@@ -206,7 +214,7 @@ batch_report <- function(object,
 }
 
 
-.html_worst_section <- function(summ, embed) {
+.html_worst_section <- function(summ, embed, output_file = NULL, relative_paths = FALSE) {
   if (is.null(summ$worst) || nrow(summ$worst) == 0) {
     return('<section class="worst-offenders">\n<h2>Worst Offenders</h2>\n<p>No failures to display.</p>\n</section>\n')
   }
@@ -218,7 +226,7 @@ batch_report <- function(object,
     } else {
       paste0("pair ", row$pair_id)
     }
-    img_html <- .format_diff_image(row$diff_output, embed)
+    img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
 
     sprintf(
       '<tr>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%.2f%%</td>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%s</td>\n</tr>',
@@ -241,7 +249,7 @@ batch_report <- function(object,
 }
 
 
-.html_all_results_section <- function(batch, embed) {
+.html_all_results_section <- function(batch, embed, output_file = NULL, relative_paths = FALSE) {
   rows <- vapply(seq_len(nrow(batch)), function(i) {
     row <- batch[i, ]
     status_class <- if (row$match) "pass" else "fail"
@@ -256,7 +264,7 @@ batch_report <- function(object,
     diff_pct <- if (is.na(row$diff_percentage)) "-" else sprintf("%.2f%%", row$diff_percentage)
     diff_cnt <- if (is.na(row$diff_count)) "-" else as.character(row$diff_count)
     reason <- if (is.na(row$reason)) "-" else .html_escape(row$reason)
-    img_html <- .format_diff_image(row$diff_output, embed)
+    img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
 
     sprintf(
       '<tr>\n  <td>%d</td>\n  <td class="%s">%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n</tr>',
@@ -280,7 +288,7 @@ batch_report <- function(object,
 }
 
 
-.format_diff_image <- function(path, embed) {
+.format_diff_image <- function(path, embed, output_file = NULL, relative_paths = FALSE) {
   if (is.na(path) || !file.exists(path)) {
     return('<span class="no-image">No diff</span>')
   }
@@ -290,8 +298,46 @@ batch_report <- function(object,
     b64 <- .base64_encode(raw_data)
     sprintf('<img class="diff-preview" src="data:image/png;base64,%s" alt="diff" />', b64)
   } else {
-    sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(path))
+    display_path <- if (relative_paths && !is.null(output_file)) {
+      .make_relative_path(path, output_file)
+    } else {
+      path
+    }
+    sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(display_path))
   }
+}
+
+
+.make_relative_path <- function(target_path, from_file) {
+  # normalizePath with mustWork=FALSE is safe here because we only call this
+  # function when the target file exists (checked in .format_diff_image).
+  # For from_file, we normalize the directory (which should exist) rather than
+  # the file itself (which may not exist yet), to ensure consistent symlink
+  # resolution on macOS where /var -> /private/var.
+  target_abs <- normalizePath(target_path, mustWork = FALSE)
+  from_dir <- normalizePath(dirname(from_file), mustWork = FALSE)
+
+  # On failure, return original path
+  tryCatch({
+    # Find common prefix and build relative path
+    target_parts <- strsplit(target_abs, .Platform$file.sep)[[1]]
+    from_parts <- strsplit(from_dir, .Platform$file.sep)[[1]]
+
+    # Find common prefix length
+    common_len <- 0
+    for (i in seq_len(min(length(target_parts), length(from_parts)))) {
+      if (target_parts[i] == from_parts[i]) {
+        common_len <- i
+      } else {
+        break
+      }
+    }
+
+    # Build relative path (use "/" for HTML, works on all platforms)
+    ups <- length(from_parts) - common_len
+    rel_parts <- c(rep("..", ups), target_parts[(common_len + 1):length(target_parts)])
+    paste(rel_parts, collapse = "/")
+  }, error = function(e) target_path)
 }
 
 

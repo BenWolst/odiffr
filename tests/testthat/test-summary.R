@@ -314,3 +314,95 @@ test_that("print shows magick-image label for magick inputs", {
   # Should show "pair 1" instead of filename for magick images
   expect_true(any(grepl("pair 1", output)))
 })
+
+
+# Tests for failed_pairs() and passed_pairs() ------------------------------
+
+test_that("failed_pairs returns only failures", {
+  skip_if_no_odiff()
+
+  img_match <- create_test_image(30, 30, "red")
+  img_diff <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_match, img_diff)), add = TRUE)
+
+  pairs <- data.frame(
+    img1 = c(img_match, img_match),
+    img2 = c(img_match, img_diff),
+    stringsAsFactors = FALSE
+  )
+  results <- compare_images_batch(pairs)
+
+  failed <- failed_pairs(results)
+  expect_equal(nrow(failed), 1)
+  expect_false(failed$match[1])
+})
+
+test_that("passed_pairs returns only passes", {
+  skip_if_no_odiff()
+
+  img_match <- create_test_image(30, 30, "red")
+  img_diff <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_match, img_diff)), add = TRUE)
+
+  pairs <- data.frame(
+    img1 = c(img_match, img_match),
+    img2 = c(img_match, img_diff),
+    stringsAsFactors = FALSE
+  )
+  results <- compare_images_batch(pairs)
+
+  passed <- passed_pairs(results)
+  expect_equal(nrow(passed), 1)
+  expect_true(passed$match[1])
+})
+
+test_that("failed_pairs and passed_pairs validate input", {
+  expect_error(failed_pairs(data.frame(x = 1)), "odiffr_batch")
+  expect_error(passed_pairs(data.frame(x = 1)), "odiffr_batch")
+})
+
+test_that("failed_pairs returns empty for all-passing batch", {
+  skip_if_no_odiff()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  pairs <- data.frame(img1 = img, img2 = img, stringsAsFactors = FALSE)
+  results <- compare_images_batch(pairs)
+
+  failed <- failed_pairs(results)
+  expect_equal(nrow(failed), 0)
+})
+
+test_that("passed_pairs returns empty for all-failing batch", {
+  skip_if_no_odiff()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  pairs <- data.frame(img1 = img_red, img2 = img_blue, stringsAsFactors = FALSE)
+  results <- compare_images_batch(pairs)
+
+  passed <- passed_pairs(results)
+  expect_equal(nrow(passed), 0)
+})
+
+test_that("failed_pairs preserves tibble class", {
+  skip_if_no_odiff()
+  skip_if_not_installed("tibble")
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  pairs <- data.frame(img1 = img_red, img2 = img_blue, stringsAsFactors = FALSE)
+  results <- compare_images_batch(pairs)
+
+  # Results should be tibble (tibble is available)
+  expect_true(inherits(results, "tbl_df"))
+
+  # failed_pairs should preserve tibble
+  failed <- failed_pairs(results)
+  expect_true(inherits(failed, "tbl_df"))
+})

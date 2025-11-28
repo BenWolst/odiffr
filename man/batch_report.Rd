@@ -9,6 +9,7 @@ batch_report(
   output_file = NULL,
   title = "odiffr Comparison Report",
   embed = FALSE,
+  relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
   ...
@@ -25,6 +26,11 @@ a character string.}
 
 \item{embed}{If TRUE, embed diff images as base64 data URIs for a fully
 self-contained file. If FALSE (default), link to image files on disk.}
+
+\item{relative_paths}{If TRUE and \code{output_file} is specified, use paths
+relative to the report location for image \code{src} attributes. This makes
+reports portable without embedding. Ignored when \code{embed = TRUE}. Default:
+FALSE.}
 
 \item{n_worst}{Number of worst offenders to display. Default: 10.}
 

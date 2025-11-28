@@ -239,6 +239,62 @@ test_that(".html_escape handles NA values", {
   expect_equal(odiffr:::.html_escape(NA), "")
 })
 
+test_that("batch_report relative_paths uses relative src", {
+  skip_if_no_odiff()
+
+  output_dir <- withr::local_tempdir()
+  diff_dir <- file.path(output_dir, "diffs")
+  report_file <- file.path(output_dir, "reports", "qa-report.html")
+
+  # Create test comparison with diff
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  results <- compare_image_dirs(baseline_dir, current_dir, diff_dir = diff_dir)
+
+  dir.create(dirname(report_file), recursive = TRUE)
+  batch_report(results, output_file = report_file, relative_paths = TRUE)
+
+  html <- paste(readLines(report_file), collapse = "\n")
+
+  # Should have relative path, not absolute
+  expect_false(grepl(normalizePath(output_dir, mustWork = FALSE), html, fixed = TRUE))
+  expect_true(grepl('src="../diffs/', html) || grepl('src="diffs/', html))
+})
+
+test_that("batch_report relative_paths=FALSE uses absolute paths", {
+  skip_if_no_odiff()
+
+  output_dir <- withr::local_tempdir()
+  diff_dir <- file.path(output_dir, "diffs")
+  report_file <- file.path(output_dir, "report.html")
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  results <- compare_image_dirs(baseline_dir, current_dir, diff_dir = diff_dir)
+  batch_report(results, output_file = report_file, relative_paths = FALSE)
+
+  html <- paste(readLines(report_file), collapse = "\n")
+
+  # Should NOT have relative path (no "../")
+  expect_false(grepl('src="\\.\\./', html))
+  # Should have the diff_dir path as stored in results (unnormalized)
+  expect_true(grepl(diff_dir, html, fixed = TRUE))
+})
+
 test_that("batch_report includes timestamp", {
   skip_if_no_odiff()
 

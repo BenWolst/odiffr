@@ -12,6 +12,7 @@ compare_dirs_report(
   parallel = FALSE,
   title = "odiffr Comparison Report",
   embed = FALSE,
+  relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
   ...
@@ -36,6 +37,10 @@ are created.}
 
 \item{embed}{Logical; if \code{TRUE}, embed images as base64 data URIs for a
 self-contained report. If \code{FALSE} (default), link to image files.}
+
+\item{relative_paths}{Logical; if \code{TRUE}, use relative paths for images
+in the HTML report. Makes reports portable without embedding. Ignored
+when \code{embed = TRUE}. Default: \code{FALSE}.}
 
 \item{n_worst}{Number of worst offenders to display in the report.}
 
