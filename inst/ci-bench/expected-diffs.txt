@@ -1,0 +1,10 @@
+solid/solid-red-100x100.png
+solid/solid-green-100x100.png
+gradient/gradient-horizontal-red-blue-200x100.png
+gradient/gradient-horizontal-green-yellow-200x100.png
+pattern/pattern-checker-4px-black-white-150x150.png
+pattern/pattern-checker-4px-red-blue-150x150.png
+pattern/pattern-checker-4px-green-yellow-150x150.png
+complex/complex-variant01-300x200.png
+complex/complex-variant02-300x200.png
+complex/complex-variant03-300x200.png
