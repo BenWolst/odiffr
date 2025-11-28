@@ -124,8 +124,12 @@ compare_images <- function(img1, img2,
 #'   file names.
 #' @param ... Additional arguments passed to [compare_images()].
 #'
-#' @return A tibble (if available) or data.frame with one row per comparison,
-#'   containing all columns from [compare_images()] plus a `pair_id` column.
+#' @return A tibble (if available) or data.frame with class `odiffr_batch`,
+#'   containing one row per comparison with all columns from [compare_images()]
+#'   plus a `pair_id` column. Use [summary()] to get aggregate statistics.
+#'
+#' @seealso [summary.odiffr_batch()] for summarizing batch results,
+#'   [compare_image_dirs()] for directory-based comparison.
 #'
 #' @export
 #'
@@ -195,12 +199,16 @@ compare_images_batch <- function(pairs, diff_dir = NULL, ...) {
   col_order <- c("pair_id", setdiff(names(combined), "pair_id"))
   combined <- combined[, col_order]
 
+
+  # Add class for S3 methods (summary, etc.)
   # Return tibble if available
   if (requireNamespace("tibble", quietly = TRUE)) {
-    tibble::as_tibble(combined)
+    result <- tibble::as_tibble(combined)
   } else {
-    combined
+    result <- combined
   }
+  class(result) <- c("odiffr_batch", class(result))
+  result
 }
 
 #' Compare Images in Two Directories

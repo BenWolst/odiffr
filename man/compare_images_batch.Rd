@@ -17,8 +17,9 @@ file names.}
 \item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}}.}
 }
 \value{
-A tibble (if available) or data.frame with one row per comparison,
-containing all columns from \code{\link[=compare_images]{compare_images()}} plus a \code{pair_id} column.
+A tibble (if available) or data.frame with class \code{odiffr_batch},
+containing one row per comparison with all columns from \code{\link[=compare_images]{compare_images()}}
+plus a \code{pair_id} column. Use \code{\link[=summary]{summary()}} to get aggregate statistics.
 }
 \description{
 Compare multiple pairs of images in batch. Useful for visual regression
@@ -38,4 +39,8 @@ results <- compare_images_batch(pairs, diff_dir = "diffs/")
 # Check which comparisons failed
 results[!results$match, ]
 }
+}
+\seealso{
+\code{\link[=summary.odiffr_batch]{summary.odiffr_batch()}} for summarizing batch results,
+\code{\link[=compare_image_dirs]{compare_image_dirs()}} for directory-based comparison.
 }
