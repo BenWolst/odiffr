@@ -16,6 +16,7 @@ Fast pixel-by-pixel image comparison for R, powered by [odiff](https://github.co
 - **Cross-platform**: Works on Windows, macOS (Intel & Apple Silicon), and Linux
 - **Flexible**: Accepts file paths or magick-image objects
 - **Configurable**: Threshold, antialiasing detection, region ignoring
+- **testthat integration**: `expect_images_match()` and `expect_images_differ()` for visual regression testing
 
 ## Installation
 
@@ -128,6 +129,31 @@ img2 <- image_read("current.png") |> image_resize("800x600")
 
 result <- compare_images(img1, img2)
 ```
+
+### Visual Regression Testing
+
+```r
+library(testthat)
+library(odiffr)
+
+test_that("dashboard renders correctly", {
+
+  expect_images_match(
+    "screenshots/current.png",
+    "screenshots/baseline.png",
+    threshold = 0.1
+  )
+})
+
+test_that("button changes on hover", {
+  expect_images_differ(
+    "button_normal.png",
+    "button_hover.png"
+  )
+})
+```
+
+On failure, diff images are automatically saved to `tests/testthat/_odiffr/`.
 
 ## Binary Management
 
