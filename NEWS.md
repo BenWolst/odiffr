@@ -6,6 +6,14 @@
   relative paths. Baseline directory is source of truth; missing files in
   current directory trigger warnings and are excluded from results.
 
+## Batch Results Summary
+
+* `summary()` method for batch results: Get aggregate statistics including
+  pass/fail counts, failure reason breakdown, diff statistics (min, median,
+  mean, max), and worst offenders ranked by diff percentage.
+* `compare_images_batch()` and `compare_image_dirs()` now return objects with
+  class `odiffr_batch` for S3 method dispatch.
+
 # Odiffr 0.2.0
 
 ## testthat Integration
