@@ -1,5 +1,17 @@
 # Changelog
 
+## Odiffr 0.2.0
+
+### testthat Integration
+
+- [`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.md):
+  Assert two images are visually identical
+- [`expect_images_differ()`](https://benwolst.github.io/odiffr/reference/expect_images.md):
+  Assert two images are visually different
+- Automatic diff image saving to `tests/testthat/_odiffr/` on failure
+- Configurable via `options(odiffr.save_diff)` and
+  `options(odiffr.diff_dir)`
+
 ## Odiffr 0.1.0
 
 Initial release.

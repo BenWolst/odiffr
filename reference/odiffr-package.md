@@ -120,4 +120,4 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Ben Wolstenholme <BenWolst@users.noreply.github.com>
+**Maintainer**: Ben Wolstenholme <odiffr@benwolst.dev>

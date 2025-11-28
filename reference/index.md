@@ -11,6 +11,12 @@
 - [`ignore_region()`](https://benwolst.github.io/odiffr/reference/ignore_region.md)
   : Create an Ignore Region
 
+## testthat Expectations
+
+- [`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.md)
+  [`expect_images_differ()`](https://benwolst.github.io/odiffr/reference/expect_images.md)
+  : testthat Expectations for Image Comparison
+
 ## Binary Management
 
 - [`find_odiff()`](https://benwolst.github.io/odiffr/reference/find_odiff.md)

@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,6 +73,8 @@
 <strong>Flexible</strong>: Accepts file paths or magick-image objects</li>
 <li>
 <strong>Configurable</strong>: Threshold, antialiasing detection, region ignoring</li>
+<li>
+<strong>testthat integration</strong>: <code><a href="reference/expect_images.html">expect_images_match()</a></code> and <code><a href="reference/expect_images.html">expect_images_differ()</a></code> for visual regression testing</li>
 </ul>
 </div>
 <div class="section level2">
@@ -187,11 +189,35 @@
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compare_images.html">compare_images</a></span><span class="op">(</span><span class="va">img1</span>, <span class="va">img2</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="visual-regression-testing">Visual Regression Testing<a class="anchor" aria-label="anchor" href="#visual-regression-testing"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://testthat.r-lib.org" class="external-link">testthat</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/BenWolst/odiffr" class="external-link">odiffr</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">test_that</a></span><span class="op">(</span><span class="st">"dashboard renders correctly"</span>, <span class="op">{</span></span>
+<span></span>
+<span>  <span class="fu"><a href="reference/expect_images.html">expect_images_match</a></span><span class="op">(</span></span>
+<span>    <span class="st">"screenshots/current.png"</span>,</span>
+<span>    <span class="st">"screenshots/baseline.png"</span>,</span>
+<span>    threshold <span class="op">=</span> <span class="fl">0.1</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">test_that</a></span><span class="op">(</span><span class="st">"button changes on hover"</span>, <span class="op">{</span></span>
+<span>  <span class="fu"><a href="reference/expect_images.html">expect_images_differ</a></span><span class="op">(</span></span>
+<span>    <span class="st">"button_normal.png"</span>,</span>
+<span>    <span class="st">"button_hover.png"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>On failure, diff images are automatically saved to <code>tests/testthat/_odiffr/</code>.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="binary-management">Binary Management<a class="anchor" aria-label="anchor" href="#binary-management"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check if Odiff is available</span></span>
 <span><span class="fu"><a href="reference/odiff_available.html">odiff_available</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -249,7 +275,7 @@
 <li>
 <strong>Base R core</strong>: Zero external runtime dependencies for core functions</li>
 </ul>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Pin to a specific validated binary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>odiffr.path <span class="op">=</span> <span class="st">"/validated/bin/odiff-4.1.2"</span><span class="op">)</span></span>
 <span></span>

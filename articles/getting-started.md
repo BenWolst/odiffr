@@ -222,31 +222,65 @@ odiffr_cache_path()
 odiffr_clear_cache()
 ```
 
-## Visual Regression Testing
+## Visual Regression Testing with testthat
 
-Example integration with testthat:
+Odiffr provides dedicated testthat expectations for visual regression
+testing:
 
 ``` r
 library(testthat)
 library(odiffr)
 
 test_that("dashboard renders correctly", {
-  # Generate current screenshot
+  skip_if_no_odiff()
+
+  # Generate current screenshot (using your preferred method)
   webshot2::webshot("http://localhost:3838/dashboard", "current.png")
 
-  # Compare to baseline
-  result <- compare_images(
-    "baselines/dashboard.png",
+  # Compare to baseline using expect_images_match()
+  expect_images_match(
     "current.png",
-    diff_output = "diffs/dashboard_diff.png",
+    "baselines/dashboard.png",
     threshold = 0.1,
     antialiasing = TRUE
   )
+})
 
-  expect_true(result$match,
-    info = sprintf("%.2f%% pixels differ", result$diff_percentage))
+test_that("button changes on hover", {
+  skip_if_no_odiff()
+
+  # Assert that images are different
+  expect_images_differ(
+    "button_normal.png",
+    "button_hover.png"
+  )
 })
 ```
+
+### Diff Images on Failure
+
+When
+[`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.md)
+fails, a diff image is automatically saved to `tests/testthat/_odiffr/`
+for debugging. Control this behavior with options:
+
+``` r
+# Disable diff image saving
+options(odiffr.save_diff = FALSE)
+
+# Use a custom directory
+options(odiffr.diff_dir = "my_diffs/")
+```
+
+### Comparison with vdiffr
+
+Odiffr and [vdiffr](https://vdiffr.r-lib.org/) are complementary
+tools: - **vdiffr** uses SVG-based comparison for ggplot2/grid graphics
+snapshots - **odiffr** uses pixel-based comparison for screenshots,
+rendered images, and bitmaps
+
+Use vdiffr for testing R plots; use odiffr for testing screenshots of
+Shiny apps, web pages, PDFs, or any raster image comparison.
 
 ## For Validated Environments
 
