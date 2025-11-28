@@ -13,6 +13,7 @@ reference:
     contents:
       - compare_images
       - compare_images_batch
+      - compare_image_dirs
       - odiff_run
       - ignore_region
 

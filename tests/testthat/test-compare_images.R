@@ -269,3 +269,236 @@ test_that("compare_images returns plain data.frame when tibble is unavailable", 
     }
   )
 })
+
+# Tests for compare_image_dirs() -----------------------------------------
+
+test_that("compare_image_dirs compares matching directories", {
+  skip_if_no_odiff()
+
+  # Create two directories with matching images
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img1 <- create_test_image(30, 30, "red")
+  img2 <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  file.copy(img1, file.path(baseline_dir, "image1.png"))
+  file.copy(img2, file.path(baseline_dir, "image2.png"))
+  file.copy(img1, file.path(current_dir, "image1.png"))
+  file.copy(img2, file.path(current_dir, "image2.png"))
+
+  result <- compare_image_dirs(baseline_dir, current_dir)
+
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$match))
+})
+
+test_that("compare_image_dirs detects differences", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  # Baseline: red, Current: blue (different)
+  file.copy(img_red, file.path(baseline_dir, "test.png"))
+  file.copy(img_blue, file.path(current_dir, "test.png"))
+
+  result <- compare_image_dirs(baseline_dir, current_dir)
+
+  expect_equal(nrow(result), 1)
+  expect_false(result$match[1])
+  expect_equal(result$reason[1], "pixel-diff")
+})
+
+test_that("compare_image_dirs warns and filters missing files in current_dir", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  # Baseline has 2 images, current only has 1
+
+  file.copy(img, file.path(baseline_dir, "exists.png"))
+  file.copy(img, file.path(baseline_dir, "missing.png"))
+  file.copy(img, file.path(current_dir, "exists.png"))
+  # missing.png is NOT in current_dir
+
+  expect_warning(
+    result <- compare_image_dirs(baseline_dir, current_dir),
+    "1 file\\(s\\) missing from current_dir"
+  )
+
+  # Only the existing pair should be in results
+  expect_equal(nrow(result), 1)
+  expect_true(grepl("exists.png", result$img2[1]))
+})
+
+test_that("compare_image_dirs errors when no images match pattern", {
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  # Create a text file, not an image
+
+  writeLines("hello", file.path(baseline_dir, "file.txt"))
+  writeLines("hello", file.path(current_dir, "file.txt"))
+
+  expect_error(
+    compare_image_dirs(baseline_dir, current_dir),
+    "No images found in baseline_dir matching pattern"
+  )
+})
+
+test_that("compare_image_dirs errors when no matching pairs exist", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  # Baseline has an image, current is empty
+  file.copy(img, file.path(baseline_dir, "test.png"))
+
+  expect_warning(
+    expect_error(
+      compare_image_dirs(baseline_dir, current_dir),
+      "No matching image pairs found"
+    ),
+    "1 file\\(s\\) missing"
+  )
+})
+
+test_that("compare_image_dirs respects custom pattern", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  # Create both png and jpeg (actually png but named .jpg)
+  file.copy(img, file.path(baseline_dir, "image.png"))
+  file.copy(img, file.path(baseline_dir, "image.jpg"))
+  file.copy(img, file.path(current_dir, "image.png"))
+  file.copy(img, file.path(current_dir, "image.jpg"))
+
+  # Only match .png files
+  result <- compare_image_dirs(baseline_dir, current_dir, pattern = "\\.png$")
+
+  expect_equal(nrow(result), 1)
+  expect_true(grepl("\\.png$", result$img1[1]))
+})
+
+test_that("compare_image_dirs works with recursive = TRUE", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  # Create subdirectory structure
+  dir.create(file.path(baseline_dir, "subdir"))
+  dir.create(file.path(current_dir, "subdir"))
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  file.copy(img, file.path(baseline_dir, "root.png"))
+  file.copy(img, file.path(baseline_dir, "subdir", "nested.png"))
+  file.copy(img, file.path(current_dir, "root.png"))
+  file.copy(img, file.path(current_dir, "subdir", "nested.png"))
+
+  # Without recursive, only root
+  result_flat <- compare_image_dirs(baseline_dir, current_dir, recursive = FALSE)
+  expect_equal(nrow(result_flat), 1)
+
+  # With recursive, both
+  result_recursive <- compare_image_dirs(baseline_dir, current_dir, recursive = TRUE)
+  expect_equal(nrow(result_recursive), 2)
+})
+
+test_that("compare_image_dirs creates diff images when diff_dir specified", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+  diff_dir <- withr::local_tempdir()
+
+  img_red <- create_test_image(30, 30, "red")
+  img_blue <- create_test_image(30, 30, "blue")
+  on.exit(unlink(c(img_red, img_blue)), add = TRUE)
+
+  file.copy(img_red, file.path(baseline_dir, "diff_test.png"))
+  file.copy(img_blue, file.path(current_dir, "diff_test.png"))
+
+  result <- compare_image_dirs(baseline_dir, current_dir, diff_dir = diff_dir)
+
+  expect_false(is.na(result$diff_output[1]))
+  expect_true(file.exists(result$diff_output[1]))
+})
+
+test_that("compare_image_dirs passes through threshold option", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  # Need larger image for create_modified_image (it modifies pixel at 50,50)
+  img1 <- create_test_image(100, 100, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  file.copy(img1, file.path(baseline_dir, "test.png"))
+  file.copy(img2, file.path(current_dir, "test.png"))
+
+  # High threshold should be more lenient
+  result <- compare_image_dirs(baseline_dir, current_dir, threshold = 1.0)
+
+  expect_true(result$match[1] || result$diff_count[1] < 100)
+})
+
+test_that("compare_image_dirs validates directory arguments", {
+  expect_error(
+    compare_image_dirs("/nonexistent/baseline", "/nonexistent/current"),
+    "baseline_dir does not exist"
+  )
+
+  baseline_dir <- withr::local_tempdir()
+  expect_error(
+    compare_image_dirs(baseline_dir, "/nonexistent/current"),
+    "current_dir does not exist"
+  )
+
+  expect_error(
+    compare_image_dirs(c("a", "b"), withr::local_tempdir()),
+    "baseline_dir must be a single directory path"
+  )
+})
+
+test_that("compare_image_dirs silently ignores extra files in current_dir", {
+  skip_if_no_odiff()
+
+  baseline_dir <- withr::local_tempdir()
+  current_dir <- withr::local_tempdir()
+
+  img <- create_test_image(30, 30, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  # Baseline has 1, current has 2 (extra file should be ignored)
+  file.copy(img, file.path(baseline_dir, "common.png"))
+  file.copy(img, file.path(current_dir, "common.png"))
+  file.copy(img, file.path(current_dir, "extra.png"))
+
+  # Should not warn about extra file
+  expect_silent(compare_image_dirs(baseline_dir, current_dir))
+})

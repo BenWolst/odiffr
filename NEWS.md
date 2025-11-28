@@ -1,3 +1,11 @@
+# Odiffr 0.3.0
+
+## Directory Comparison
+
+* `compare_image_dirs()`: Compare all images in two directories by matching
+  relative paths. Baseline directory is source of truth; missing files in
+  current directory trigger warnings and are excluded from results.
+
 # Odiffr 0.2.0
 
 ## testthat Integration
