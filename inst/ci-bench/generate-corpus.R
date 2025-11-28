@@ -148,6 +148,10 @@ apply_region_diff <- function(img, x1, y1, x2, y2) {
 # --- Write Image Helper ---
 
 write_pair <- function(img_baseline, img_current, category, filename) {
+  # Ensure directories exist (robust to clean checkout re-runs)
+  dir.create(file.path(BASELINE_DIR, category), recursive = TRUE, showWarnings = FALSE)
+  dir.create(file.path(CURRENT_DIR, category), recursive = TRUE, showWarnings = FALSE)
+
   baseline_path <- file.path(BASELINE_DIR, category, filename)
   current_path <- file.path(CURRENT_DIR, category, filename)
   writePNG(img_baseline, baseline_path)
