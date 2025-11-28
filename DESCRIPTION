@@ -1,6 +1,6 @@
 Package: odiffr
 Title: Fast Pixel-by-Pixel Image Comparison Using 'odiff'
-Version: 0.4.1
+Version: 0.5.0
 Authors@R:
     person("Ben", "Wolstenholme", , "odiffr@benwolst.dev", role = c("aut", "cre"))
 Description: R bindings to 'odiff', a blazing-fast pixel-by-pixel image

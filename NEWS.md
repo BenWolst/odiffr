@@ -1,3 +1,21 @@
+# Odiffr 0.5.0
+
+## New Features
+
+* `batch_report()` gains a `relative_paths` parameter. When `TRUE`, image
+  paths in HTML reports are relative to the report location, making reports
+  portable without embedding images.
+* `compare_image_dirs()` now emits a message when files in `current_dir`
+  have no corresponding baseline, helping catch missing or extra images early.
+* New accessor functions `failed_pairs()` and `passed_pairs()` make it
+  easy to filter batch comparison results.
+
+## Documentation
+
+* Expanded README and vignette coverage for batch workflows, HTML reports,
+  and CI/testthat integration, including examples using `embed = TRUE`,
+  `show_all = TRUE`, and `relative_paths = TRUE`.
+
 # Odiffr 0.4.1
 
 ## New Features
