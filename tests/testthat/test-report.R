@@ -264,8 +264,14 @@ test_that("batch_report relative_paths uses relative src", {
   html <- paste(readLines(report_file), collapse = "\n")
 
   # Should have relative path, not absolute
+  # Check that absolute path prefix is NOT present
   expect_false(grepl(normalizePath(output_dir, mustWork = FALSE), html, fixed = TRUE))
-  expect_true(grepl('src="../diffs/', html) || grepl('src="diffs/', html))
+  # Check for relative path pattern - works with either forward or back slashes
+  # Should contain ".." (go up) followed by separator and "diffs", or just "diffs" at start
+  expect_true(
+    grepl('src="\\.\\.[\\\\/]diffs[\\\\/]', html) ||  # ../diffs/ or ..\diffs\
+    grepl('src="diffs[\\\\/]', html)                  # diffs/ or diffs\
+  )
 })
 
 test_that("batch_report relative_paths=FALSE uses absolute paths", {
