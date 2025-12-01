@@ -319,9 +319,24 @@ batch_report <- function(object,
 
   # On failure, return original path
   tryCatch({
+    # Normalize all paths to use forward slashes for consistent splitting.
+    # On Windows, normalizePath() may return backslashes, but we want to split
+    # consistently across platforms and output forward slashes for HTML.
+    target_abs <- gsub("\\\\", "/", target_abs)
+    from_dir <- gsub("\\\\", "/", from_dir)
+
     # Find common prefix and build relative path
-    target_parts <- strsplit(target_abs, .Platform$file.sep)[[1]]
-    from_parts <- strsplit(from_dir, .Platform$file.sep)[[1]]
+    target_parts <- strsplit(target_abs, "/", fixed = TRUE)[[1]]
+    from_parts <- strsplit(from_dir, "/", fixed = TRUE)[[1]]
+
+    # Remove empty strings that can result from trailing separators or UNC paths
+    target_parts <- target_parts[nzchar(target_parts)]
+    from_parts <- from_parts[nzchar(from_parts)]
+
+    # If either path is empty after cleanup, return original
+    if (length(target_parts) == 0 || length(from_parts) == 0) {
+      return(target_path)
+    }
 
     # Find common prefix length
     common_len <- 0
@@ -333,9 +348,25 @@ batch_report <- function(object,
       }
     }
 
+    # If no common prefix (e.g., different drives on Windows), return original
+    if (common_len == 0) {
+      return(target_path)
+    }
+
     # Build relative path (use "/" for HTML, works on all platforms)
     ups <- length(from_parts) - common_len
-    rel_parts <- c(rep("..", ups), target_parts[(common_len + 1):length(target_parts)])
+    remaining <- if (common_len < length(target_parts)) {
+      target_parts[(common_len + 1):length(target_parts)]
+    } else {
+      character(0)
+    }
+    rel_parts <- c(rep("..", ups), remaining)
+
+    # Handle case where result is empty (same directory)
+    if (length(rel_parts) == 0) {
+      return(".")
+    }
+
     paste(rel_parts, collapse = "/")
   }, error = function(e) target_path)
 }

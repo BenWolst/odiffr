@@ -219,8 +219,14 @@ test_that("compare_images with diff_output path creates file", {
 
   result <- compare_images(img1, img2, diff_output = diff_path)
 
-  expect_equal(result$diff_output, diff_path)
+  # Verify the diff file was created and path points to it
+  # Note: Can't directly compare paths because normalizePath behaves differently
+
+  # before vs after file creation (especially on macOS with /var -> /private/var)
+  expect_true(file.exists(result$diff_output))
   expect_true(file.exists(diff_path))
+  # Verify they point to the same file by normalizing both AFTER file exists
+  expect_equal(normalizePath(result$diff_output), normalizePath(diff_path))
 })
 
 test_that("compare_images with antialiasing option", {
@@ -581,13 +587,18 @@ test_that("compare_images_batch parallel=TRUE produces same results as sequentia
 
 test_that("compare_images_batch parallel=TRUE on Windows falls back to sequential", {
   skip_if_no_odiff()
+  # Skip on Windows - we're testing the fallback behavior for non-Windows platforms.
+  # On actual Windows, the mock loses .Platform$file.sep and other properties,
+  # breaking path handling. The real Windows behavior is tested implicitly by
+  # other tests that run on Windows CI.
+  skip_on_os("windows")
 
   img <- create_test_image(30, 30, "red")
   on.exit(unlink(img), add = TRUE)
 
   pairs <- data.frame(img1 = img, img2 = img, stringsAsFactors = FALSE)
 
-  # Mock Windows platform
+  # Mock Windows platform to test fallback on non-Windows systems
   testthat::with_mocked_bindings(
     `.Platform` = list(OS.type = "windows"),
     .package = "base",
@@ -831,6 +842,13 @@ test_that("compare_dirs_report passes relative_paths to batch_report", {
   html <- paste(readLines(report_file), collapse = "\n")
 
   # Should have relative path, not absolute
-  expect_false(grepl(normalizePath(output_dir, mustWork = FALSE), html, fixed = TRUE))
-  expect_true(grepl('src="../diffs/', html) || grepl('src="diffs/', html))
+  # Check that absolute path prefix is NOT present (normalize for consistent comparison)
+  abs_prefix <- gsub("\\\\", "/", normalizePath(output_dir, mustWork = FALSE))
+  expect_false(grepl(abs_prefix, html, fixed = TRUE))
+  # Check for relative path pattern (always forward slashes from .make_relative_path)
+  # Should contain ".." (go up) followed by "/" and "diffs", or just "diffs/" at start
+  expect_true(
+    grepl('src="../diffs/', html, fixed = TRUE) ||
+    grepl('src="diffs/', html, fixed = TRUE)
+  )
 })
