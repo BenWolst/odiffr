@@ -1,0 +1,137 @@
+name: Diagnose odiff Windows Issue
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        version: ['4.2.1', '4.3.0', '4.3.1', '4.3.2']
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install odiff-bin@${{ matrix.version }}
+        run: npm install -g odiff-bin@${{ matrix.version }}
+
+      - name: Show npm global paths
+        run: |
+          echo "=== NPM Paths ==="
+          npm config get prefix
+          npm root -g
+
+      - name: Check what bin/odiff.exe actually is
+        shell: pwsh
+        run: |
+          $npmRoot = npm root -g
+          $binPath = Join-Path $npmRoot "odiff-bin/bin/odiff.exe"
+          $rawBinPath = Join-Path $npmRoot "odiff-bin/raw_binaries/odiff-windows-x64.exe"
+
+          echo "=== Checking bin/odiff.exe ==="
+          if (Test-Path $binPath) {
+            echo "File exists: $binPath"
+            echo "File size: $((Get-Item $binPath).Length) bytes"
+
+            # Check if it's a text file (JavaScript) or binary
+            $firstBytes = [System.IO.File]::ReadAllBytes($binPath)[0..10]
+            $firstBytesHex = ($firstBytes | ForEach-Object { '{0:X2}' -f $_ }) -join ' '
+            echo "First bytes (hex): $firstBytesHex"
+
+            # MZ header = 4D 5A (Windows executable)
+            # Shebang = 23 21 (#!/usr/bin/env node)
+            if ($firstBytes[0] -eq 0x4D -and $firstBytes[1] -eq 0x5A) {
+              echo "RESULT: This is a Windows executable (MZ header) - CORRECT"
+            } elseif ($firstBytes[0] -eq 0x23 -and $firstBytes[1] -eq 0x21) {
+              echo "RESULT: This is a JavaScript shebang file - WRONG (placeholder not replaced)"
+              echo ""
+              echo "=== File contents (first 500 chars) ==="
+              Get-Content $binPath -Raw | Select-Object -First 500
+            } else {
+              echo "RESULT: Unknown file type"
+            }
+          } else {
+            echo "ERROR: bin/odiff.exe does not exist!"
+          }
+
+          echo ""
+          echo "=== Checking raw_binaries/odiff-windows-x64.exe ==="
+          if (Test-Path $rawBinPath) {
+            echo "File exists: $rawBinPath"
+            echo "File size: $((Get-Item $rawBinPath).Length) bytes"
+          } else {
+            echo "ERROR: raw binary does not exist!"
+          }
+
+      - name: Test odiff --version (may fail)
+        id: version_test
+        continue-on-error: true
+        run: |
+          echo "=== Running odiff --version ==="
+          odiff --version
+
+      - name: Capture detailed error if version test failed
+        if: steps.version_test.outcome == 'failure'
+        shell: pwsh
+        run: |
+          echo "=== Detailed error capture ==="
+          $npmPrefix = npm config get prefix
+          $cmdPath = Join-Path $npmPrefix "odiff.cmd"
+
+          echo "Looking for: $cmdPath"
+          if (Test-Path $cmdPath) {
+            echo "=== Contents of odiff.cmd ==="
+            Get-Content $cmdPath
+          }
+
+          echo ""
+          echo "=== Trying to run directly with node ==="
+          $npmRoot = npm root -g
+          $binPath = Join-Path $npmRoot "odiff-bin/bin/odiff.exe"
+
+          try {
+            node $binPath --version 2>&1
+          } catch {
+            echo "Error: $_"
+          }
+
+      - name: Try npm rebuild and retest
+        if: steps.version_test.outcome == 'failure'
+        run: |
+          echo "=== Running npm rebuild odiff-bin ==="
+          npm rebuild odiff-bin -g
+
+          echo ""
+          echo "=== Retesting odiff --version after rebuild ==="
+          odiff --version
+
+      - name: Test actual image comparison (if version works)
+        if: steps.version_test.outcome == 'success'
+        shell: pwsh
+        run: |
+          echo "=== Creating test images ==="
+          # Create a simple 10x10 red PNG using PowerShell
+          Add-Type -AssemblyName System.Drawing
+
+          $bmp = New-Object System.Drawing.Bitmap(10, 10)
+          $graphics = [System.Drawing.Graphics]::FromImage($bmp)
+          $graphics.Clear([System.Drawing.Color]::Red)
+          $graphics.Dispose()
+
+          $bmp.Save("$PWD\test1.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $bmp.Save("$PWD\test2.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $bmp.Dispose()
+
+          echo "=== Comparing identical images ==="
+          odiff test1.png test2.png diff.png
+          echo "Exit code: $LASTEXITCODE"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== SUMMARY for odiff-bin@${{ matrix.version }} ==="
+          echo "Version test outcome: ${{ steps.version_test.outcome }}"
