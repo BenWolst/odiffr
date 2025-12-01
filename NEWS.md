@@ -1,3 +1,13 @@
+# Odiffr 0.5.1
+
+## Bug Fixes
+
+* `odiff_version()` now correctly parses the version from `odiff --version`
+  output instead of `--help`, which did not contain version information.
+* `batch_report()` with `relative_paths = TRUE` now produces correct relative
+  paths on Windows by normalizing path separators before computing relative
+  paths.
+
 # Odiffr 0.5.0
 
 ## New Features
