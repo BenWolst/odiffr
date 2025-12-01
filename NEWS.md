@@ -1,3 +1,10 @@
+# Odiffr 0.5.1
+
+## Bug Fixes
+
+* `odiff_version()` now correctly parses the version from `odiff --version`
+  output instead of `--help`, which did not contain version information.
+
 # Odiffr 0.5.0
 
 ## New Features
