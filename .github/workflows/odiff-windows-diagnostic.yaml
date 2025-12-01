@@ -78,6 +78,7 @@ jobs:
 
       - name: Capture detailed error if version test failed
         if: steps.version_test.outcome == 'failure'
+        continue-on-error: true
         shell: pwsh
         run: |
           echo "=== Detailed error capture ==="
@@ -101,6 +102,19 @@ jobs:
             echo "Error: $_"
           }
 
+      - name: Test direct binary execution (bypassing npm wrapper)
+        if: steps.version_test.outcome == 'failure'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $npmRoot = npm root -g
+          $binPath = Join-Path $npmRoot "odiff-bin/bin/odiff.exe"
+
+          echo "=== Direct binary execution test ==="
+          echo "Running: & `"$binPath`" --version"
+          & "$binPath" --version 2>&1
+          echo "Exit code: $LASTEXITCODE"
+
       - name: Run npm rebuild
         if: steps.version_test.outcome == 'failure'
         run: |
@@ -115,6 +129,19 @@ jobs:
         run: |
           echo "=== Retesting odiff --version after rebuild ==="
           odiff --version 2>&1
+          echo "Exit code: $LASTEXITCODE"
+
+      - name: Test direct binary after rebuild
+        id: direct_test
+        if: steps.version_test.outcome == 'failure'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $npmRoot = npm root -g
+          $binPath = Join-Path $npmRoot "odiff-bin/bin/odiff.exe"
+
+          echo "=== Direct binary test after rebuild ==="
+          & "$binPath" --version 2>&1
           echo "Exit code: $LASTEXITCODE"
 
       - name: Test actual image comparison (if version works)
@@ -142,5 +169,6 @@ jobs:
         if: always()
         run: |
           echo "=== SUMMARY for odiff-bin@${{ matrix.version }} ==="
-          echo "Version test outcome: ${{ steps.version_test.outcome }}"
-          echo "Version retest (after rebuild) outcome: ${{ steps.version_retest.outcome || 'skipped' }}"
+          echo "Version test (via npm wrapper): ${{ steps.version_test.outcome }}"
+          echo "Version retest (after rebuild): ${{ steps.version_retest.outcome || 'skipped' }}"
+          echo "Direct binary test: ${{ steps.direct_test.outcome || 'skipped' }}"
