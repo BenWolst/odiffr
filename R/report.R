@@ -319,11 +319,15 @@ batch_report <- function(object,
 
   # On failure, return original path
   tryCatch({
+    # Normalize all paths to use forward slashes for consistent splitting.
+    # On Windows, normalizePath() may return backslashes, but we want to split
+    # consistently across platforms and output forward slashes for HTML.
+    target_abs <- gsub("\\\\", "/", target_abs)
+    from_dir <- gsub("\\\\", "/", from_dir)
+
     # Find common prefix and build relative path
-    # Use fixed = TRUE because .Platform$file.sep is "\" on Windows,
-    # which strsplit would otherwise interpret as a regex escape character
-    target_parts <- strsplit(target_abs, .Platform$file.sep, fixed = TRUE)[[1]]
-    from_parts <- strsplit(from_dir, .Platform$file.sep, fixed = TRUE)[[1]]
+    target_parts <- strsplit(target_abs, "/", fixed = TRUE)[[1]]
+    from_parts <- strsplit(from_dir, "/", fixed = TRUE)[[1]]
 
     # Remove empty strings that can result from trailing separators or UNC paths
     target_parts <- target_parts[nzchar(target_parts)]
