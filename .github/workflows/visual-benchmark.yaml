@@ -47,8 +47,9 @@ jobs:
           node-version: '20'
 
       - name: Install odiff
+        # Pin to 4.2.1 due to Windows regression in 4.3.x (see #11)
         run: |
-          npm install -g odiff-bin
+          npm install -g odiff-bin@4.2.1
           NPM_BIN=$(npm config get prefix)/bin
           echo "$NPM_BIN" >> $GITHUB_PATH
           # Create symlink if odiff binary doesn't exist
