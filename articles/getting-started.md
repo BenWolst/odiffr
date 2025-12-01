@@ -47,9 +47,17 @@ library(odiffr)
 ``` r
 # Verify Odiff is available
 odiff_available()
+#> [1] TRUE
 
 # View configuration details
 odiff_info()
+#> odiffr configuration
+#> --------------------
+#> OS:       linux 
+#> Arch:     x64 
+#> Path:     /opt/hostedtoolcache/node/20.19.5/x64/lib/node_modules/odiff-bin/bin/odiff.exe 
+#> Version:  4.3.2 
+#> Source:   system
 ```
 
 ### Compare Images
@@ -402,6 +410,7 @@ options(odiffr.path = "/validated/bin/odiff-4.1.2")
 ``` r
 # View cache location
 odiffr_cache_path()
+#> [1] "/home/runner/.cache/R/odiffr"
 ```
 
 ``` r

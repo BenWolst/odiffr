@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,9 +31,19 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.1/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.1" id="odiffr-051">Odiffr 0.5.1<a class="anchor" aria-label="anchor" href="#odiffr-051"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-5-1">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-5-1"></a></h3>
+<ul><li>
+<code><a href="../reference/odiff_version.html">odiff_version()</a></code> now correctly parses the version from <code>odiff --version</code> output instead of <code>--help</code>, which did not contain version information.</li>
+<li>
+<code><a href="../reference/batch_report.html">batch_report()</a></code> with <code>relative_paths = TRUE</code> now produces correct relative paths on Windows by normalizing path separators before computing relative paths.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="odiffr-050">Odiffr 0.5.0<a class="anchor" aria-label="anchor" href="#odiffr-050"></a></h2>
 <div class="section level3">

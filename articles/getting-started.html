@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">odiffr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +57,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Getting Started with Odiffr</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.0/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/BenWolst/odiffr/blob/v0.5.1/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
       <div class="d-none name"><code>getting-started.Rmd</code></div>
     </div>
 
@@ -108,9 +108,17 @@ binary to your user cache.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Verify Odiff is available</span></span>
 <span><span class="fu"><a href="../reference/odiff_available.html">odiff_available</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
 <span></span>
 <span><span class="co"># View configuration details</span></span>
-<span><span class="fu"><a href="../reference/odiff_info.html">odiff_info</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/odiff_info.html">odiff_info</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; odiffr configuration</span></span>
+<span><span class="co">#&gt; --------------------</span></span>
+<span><span class="co">#&gt; OS:       linux </span></span>
+<span><span class="co">#&gt; Arch:     x64 </span></span>
+<span><span class="co">#&gt; Path:     /opt/hostedtoolcache/node/20.19.5/x64/lib/node_modules/odiff-bin/bin/odiff.exe </span></span>
+<span><span class="co">#&gt; Version:  4.3.2 </span></span>
+<span><span class="co">#&gt; Source:   system</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="compare-images">Compare Images<a class="anchor" aria-label="anchor" href="#compare-images"></a>
@@ -486,7 +494,8 @@ preprocessing:</p>
 </h3>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># View cache location</span></span>
-<span><span class="fu"><a href="../reference/odiffr_cache_path.html">odiffr_cache_path</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/odiffr_cache_path.html">odiffr_cache_path</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "/home/runner/.cache/R/odiffr"</span></span></code></pre></div>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Clear cached binaries</span></span>
 <span><span class="fu"><a href="../reference/odiffr_clear_cache.html">odiffr_clear_cache</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>

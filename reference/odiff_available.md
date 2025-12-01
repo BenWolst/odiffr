@@ -16,5 +16,5 @@ Logical `TRUE` if odiff is found and executable, `FALSE` otherwise.
 
 ``` r
 odiff_available()
-#> [1] FALSE
+#> [1] TRUE
 ```
