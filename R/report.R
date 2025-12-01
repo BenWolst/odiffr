@@ -320,8 +320,10 @@ batch_report <- function(object,
   # On failure, return original path
   tryCatch({
     # Find common prefix and build relative path
-    target_parts <- strsplit(target_abs, .Platform$file.sep)[[1]]
-    from_parts <- strsplit(from_dir, .Platform$file.sep)[[1]]
+    # Use fixed = TRUE because .Platform$file.sep is "\" on Windows,
+    # which strsplit would otherwise interpret as a regex escape character
+    target_parts <- strsplit(target_abs, .Platform$file.sep, fixed = TRUE)[[1]]
+    from_parts <- strsplit(from_dir, .Platform$file.sep, fixed = TRUE)[[1]]
 
     # Find common prefix length
     common_len <- 0
