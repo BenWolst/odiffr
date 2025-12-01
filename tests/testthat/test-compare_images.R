@@ -219,8 +219,14 @@ test_that("compare_images with diff_output path creates file", {
 
   result <- compare_images(img1, img2, diff_output = diff_path)
 
-  expect_equal(result$diff_output, diff_path)
+  # Verify the diff file was created and path points to it
+  # Note: Can't directly compare paths because normalizePath behaves differently
+
+  # before vs after file creation (especially on macOS with /var -> /private/var)
+  expect_true(file.exists(result$diff_output))
   expect_true(file.exists(diff_path))
+  # Verify they point to the same file by normalizing both AFTER file exists
+  expect_equal(normalizePath(result$diff_output), normalizePath(diff_path))
 })
 
 test_that("compare_images with antialiasing option", {
