@@ -172,3 +172,19 @@ test_that(".format_regions handles various inputs", {
   result3 <- odiffr:::.format_regions(df)
   expect_equal(result3, "10:20-30:40,50:60-70:80")
 })
+
+test_that("odiff_run works with enable_asm flag", {
+  skip_if_no_odiff()
+  ver <- odiff_version()
+  skip_if(is.na(ver) || utils::compareVersion(ver, "4.1.1") < 0,
+          "enable_asm requires odiff >= 4.1.1")
+
+  img1 <- create_test_image(50, 50, "red")
+  img2 <- create_test_image(50, 50, "red")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  result <- odiff_run(img1, img2, enable_asm = TRUE)
+
+  expect_s3_class(result, "odiff_result")
+  expect_true(result$match)
+})
