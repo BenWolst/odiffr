@@ -188,3 +188,26 @@ test_that("odiff_run works with enable_asm flag", {
   expect_s3_class(result, "odiff_result")
   expect_true(result$match)
 })
+
+test_that("odiff_run warns and disables enable_asm on old odiff", {
+  skip_if_no_odiff()
+
+  img <- create_test_image(10, 10, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  # Mock odiff_version to return old version, triggering the guard
+
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.0.0",
+    .package = "odiffr"
+  )
+
+  expect_warning(
+    result <- odiff_run(img, img, enable_asm = TRUE),
+    "enable_asm = TRUE requires odiff >= 4.1.1"
+  )
+
+  # Should still produce a valid result (flag was disabled)
+  expect_s3_class(result, "odiff_result")
+  expect_true(result$match)
+})
