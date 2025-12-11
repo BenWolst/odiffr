@@ -361,6 +361,7 @@ result <- odiff_run(
   diff_color = "#FF00FF",
   diff_lines = TRUE,
   reduce_ram = FALSE,
+  enable_asm = TRUE,
   ignore_regions = list(ignore_region(10, 10, 100, 50)),
   timeout = 60
 )

@@ -1,4 +1,12 @@
-# Odiffr 0.5.1
+# odiffr (development version)
+
+## New Features
+
+* `odiff_run()` gains an `enable_asm` parameter to enable AVX-512 optimised
+  assembly for ~12% faster comparisons on supported x86_64 CPUs. Requires
+  odiff >= 4.1.1.
+
+# odiffr 0.5.1
 
 ## Bug Fixes
 

@@ -24,6 +24,9 @@
 #'   different pixels in the output. Default is `FALSE`.
 #' @param reduce_ram Logical; if `TRUE`, use less memory but run slower.
 #'   Useful for very large images. Default is `FALSE`.
+#' @param enable_asm Logical; if `TRUE`, pass `--enable-asm` to the underlying
+#'   `odiff` binary to enable assembly-optimised code paths (e.g. AVX-512) on
+#'   supported CPUs. Requires odiff >= 4.1.1. Default is `FALSE`.
 #' @param ignore_regions A list of regions to ignore during comparison. Each
 #'   region should be a list with `x1`, `y1`, `x2`, `y2` components, or use
 #'   [ignore_region()] to create them. Can also be a data.frame with these
@@ -49,6 +52,11 @@
 #'     \item{diff_output}{Character or `NULL`; path to diff image if created.}
 #'     \item{duration}{Numeric; time elapsed in seconds.}
 #'   }
+#'
+#' @details
+#' The `enable_asm` option is an advanced, platform-specific optimisation flag.
+#' For odiff < 4.1.1, odiffr ignores `enable_asm` with a warning. Behaviour on
+#' unsupported CPUs is determined by odiff itself.
 #'
 #' @seealso [compare_images()] for a higher-level interface,
 #'   [ignore_region()] for creating ignore regions.
@@ -85,6 +93,7 @@ odiff_run <- function(img1, img2,
                       diff_color = NULL,
                       diff_lines = FALSE,
                       reduce_ram = FALSE,
+                      enable_asm = FALSE,
                       ignore_regions = NULL,
                       timeout = 60) {
   # Find odiff binary
@@ -103,6 +112,16 @@ odiff_run <- function(img1, img2,
     }
   }
 
+  # Version guard for enable_asm
+  if (isTRUE(enable_asm)) {
+    ver <- odiff_version()
+    if (is.na(ver) || utils::compareVersion(ver, "4.1.1") < 0) {
+      warning("enable_asm = TRUE requires odiff >= 4.1.1; ",
+              "flag will be ignored for older versions.", call. = FALSE)
+      enable_asm <- FALSE
+    }
+  }
+
   # Build arguments
   args <- .build_args(
     img1 = img1,
@@ -116,6 +135,7 @@ odiff_run <- function(img1, img2,
     diff_color = diff_color,
     diff_lines = diff_lines,
     reduce_ram = reduce_ram,
+    enable_asm = enable_asm,
     ignore_regions = ignore_regions
   )
 

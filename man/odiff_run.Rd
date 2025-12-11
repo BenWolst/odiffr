@@ -16,6 +16,7 @@ odiff_run(
   diff_color = NULL,
   diff_lines = FALSE,
   reduce_ram = FALSE,
+  enable_asm = FALSE,
   ignore_regions = NULL,
   timeout = 60
 )
@@ -53,6 +54,10 @@ different pixels in the output. Default is \code{FALSE}.}
 \item{reduce_ram}{Logical; if \code{TRUE}, use less memory but run slower.
 Useful for very large images. Default is \code{FALSE}.}
 
+\item{enable_asm}{Logical; if \code{TRUE}, pass \code{--enable-asm} to the underlying
+\code{odiff} binary to enable assembly-optimised code paths (e.g. AVX-512) on
+supported CPUs. Requires odiff >= 4.1.1. Default is \code{FALSE}.}
+
 \item{ignore_regions}{A list of regions to ignore during comparison. Each
 region should be a list with \code{x1}, \code{y1}, \code{x2}, \code{y2} components, or use
 \code{\link[=ignore_region]{ignore_region()}} to create them. Can also be a data.frame with these
@@ -84,6 +89,11 @@ or \code{NULL}.}
 \description{
 Direct wrapper around the odiff CLI with zero external dependencies.
 Returns a structured list with comparison results.
+}
+\details{
+The \code{enable_asm} option is an advanced, platform-specific optimisation flag.
+For odiff < 4.1.1, odiffr ignores \code{enable_asm} with a warning. Behaviour on
+unsupported CPUs is determined by odiff itself.
 }
 \examples{
 \dontrun{
