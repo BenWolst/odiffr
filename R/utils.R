@@ -6,7 +6,7 @@
                         fail_on_layout = FALSE, diff_mask = FALSE,
                         diff_overlay = NULL, diff_color = NULL,
                         diff_lines = FALSE, reduce_ram = FALSE,
-                        ignore_regions = NULL) {
+                        enable_asm = FALSE, ignore_regions = NULL) {
   args <- character()
 
   # Add threshold
@@ -45,6 +45,10 @@
 
   if (isTRUE(reduce_ram)) {
     args <- c(args, "--reduce-ram-usage")
+  }
+
+  if (isTRUE(enable_asm)) {
+    args <- c(args, "--enable-asm")
   }
 
   # Add ignore regions

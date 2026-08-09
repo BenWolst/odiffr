@@ -63,6 +63,16 @@ test_that(".build_args includes reduce_ram flag", {
   expect_true("--reduce-ram-usage" %in% args)
 })
 
+test_that(".build_args includes enable_asm flag", {
+  args <- odiffr:::.build_args(
+    img1 = "a.png",
+    img2 = "b.png",
+    enable_asm = TRUE
+  )
+
+  expect_true("--enable-asm" %in% args)
+})
+
 test_that(".build_args includes ignore_regions from data.frame", {
   regions <- data.frame(
     x1 = c(10, 50),
@@ -95,6 +105,7 @@ test_that(".build_args includes all options together", {
     diff_color = "blue",
     diff_lines = TRUE,
     reduce_ram = TRUE,
+    enable_asm = TRUE,
     ignore_regions = regions
   )
 
@@ -107,6 +118,7 @@ test_that(".build_args includes all options together", {
   expect_true("--output-diff-lines" %in% args)
   expect_true("--parsable-stdout" %in% args)
   expect_true("--reduce-ram-usage" %in% args)
+  expect_true("--enable-asm" %in% args)
   expect_true(any(grepl("--ignore=", args)))
   expect_true("a.png" %in% args)
   expect_true("b.png" %in% args)

@@ -283,6 +283,9 @@ sprintf("Using odiff %s from %s", info$version, info$source)
 
 Odiff is approximately 6x faster than ImageMagick for pixel comparison, thanks to SIMD optimizations. Performance scales well with image size.
 
+On x86_64 systems with AVX-512, pass `enable_asm = TRUE` to `odiff_run()` for
+~12% faster comparisons (requires odiff >= 4.1.1).
+
 ## Related
 
 - [odiff](https://github.com/dmtrKovalenko/odiff) - The underlying CLI tool
