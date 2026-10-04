@@ -2,6 +2,32 @@
 
 ## New Features
 
+* `find_odiff()` now bypasses the Node.js launcher script installed by
+  `npm install -g odiff-bin` (odiff >= 4.4) and calls the native odiff binary
+  directly, making each comparison around 5x faster. A path set with
+  `options(odiffr.path)` is used as-is, and `options(odiffr.resolve_npm = FALSE)`
+  disables the lookup. `odiff_info()` gains a `shim` field.
+* `compare_file_odiff()` and `expect_snapshot_image()` now write a diff image
+  when a snapshot comparison fails (outside `_snaps/`, in `tests/testthat/_odiffr/`
+  by default) and report its location. Both gain a `preset` argument, and the
+  new `odiff_preset()` provides calibrated settings: `"strict"`, `"default"`,
+  `"screenshot"` (ignores anti-aliasing noise) and `"cross_platform"`.
+  `compare_file_odiff()` works as the `compare` function of
+  `shinytest2::AppDriver$expect_screenshot()`; see
+  `vignette("shinytest2", package = "odiffr")`.
+* `snapshot_report()` builds an HTML, Markdown or JUnit report of changed image
+  snapshots (`*.new.png` files under `_snaps/`), for reviewing snapshot
+  failures in CI.
+* `compare_pdfs()` compares two PDF files page by page, and `compare_pdf_dirs()`
+  compares directories of PDFs, returning batch results that work with
+  `summary()`, `batch_report()`, `batch_markdown()` and `batch_junit()`.
+  Requires the pdftools package. See `vignette("pdf-outputs", package = "odiffr")`.
+* `audit_record()` writes a JSON or CSV record of comparisons, including
+  input and output file hashes, the odiff version and binary hash, parameters,
+  timestamp and platform. `odiff_run()` results gain a `params` element with
+  the effective comparison parameters.
+* New vignette on comparing web pages and htmlwidgets screenshots taken with
+  webshot2.
 * `expect_snapshot_image()` is a testthat snapshot expectation that compares
   images with odiff, so baselines are managed with `testthat::snapshot_review()`
   and `testthat::snapshot_accept()`. `compare_file_odiff()` returns the

@@ -23,10 +23,13 @@ Imports:
     tools
 Suggests:
     base64enc,
+    digest,
     ggplot2,
     jsonlite,
     knitr,
     magick,
+    openssl,
+    pdftools,
     png,
     ragg,
     rmarkdown,

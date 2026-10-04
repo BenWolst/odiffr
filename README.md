@@ -224,6 +224,30 @@ img <- diff_image(compare_images("baseline.png", "current.png",
 plot(diff_image(failed_pairs(results)[1, ], as = "raster"))  # no magick
 ```
 
+### Comparing PDFs
+
+Compare PDF documents (e.g. clinical tables and figures, or rendered Quarto /
+R Markdown documents) page by page. Requires the
+[pdftools](https://docs.ropensci.org/pdftools/) package.
+
+```r
+# One row per page; differing pages get a diff image
+res <- compare_pdfs("before/report.pdf", "after/report.pdf",
+                    dpi = 150, diff_dir = "pdf-diffs")
+summary(res)
+failed_pairs(res)[, c("page", "reason", "diff_percentage")]
+
+# Compare all PDFs in two directories (e.g. outputs before/after an R upgrade)
+res <- compare_pdf_dirs("outputs-old/", "outputs-new/", diff_dir = "pdf-diffs")
+batch_report(res, output_file = "pdf-diffs/report.html")
+```
+
+Pages missing from the current PDF are reported as `"missing"`, extra pages
+as `"error"`. `ignore_regions` coordinates are pixels at the chosen `dpi`.
+Only PDF is supported: convert RTF/DOCX outputs to PDF first (e.g.
+`soffice --headless --convert-to pdf`). See
+`vignette("pdf-outputs", package = "odiffr")`.
+
 ### CI Integration
 
 Run visual regression tests in GitHub Actions and upload diff artifacts:
@@ -339,6 +363,22 @@ testthat::snapshot_accept()
 
 Like other file snapshots, these are skipped on CRAN. Use
 `variant = Sys.info()[["sysname"]]` if rendering differs across platforms.
+When a snapshot fails, a diff image is written to `tests/testthat/_odiffr/`.
+On CI, `snapshot_report()` writes an HTML, Markdown or JUnit report of all
+changed snapshots.
+
+### Shiny Apps (shinytest2)
+
+Use odiff for shinytest2 screenshots to tolerate browser anti-aliasing noise
+and get a diff image when a screenshot changes:
+
+```r
+app$expect_screenshot(compare = compare_file_odiff(preset = "screenshot"))
+```
+
+See `vignette("shinytest2")` for presets, a project-wide helper, CI reports
+and platform variants, and `vignette("web-pages")` for web pages and
+htmlwidgets.
 
 ## Binary Management
 
@@ -361,6 +401,17 @@ options(odiffr.path = "/path/to/odiff")
 1. `options(odiffr.path = "...")` - User override
 2. System PATH (`Sys.which("odiff")`)
 3. Cached binary from `odiffr_update()`
+
+### Faster comparisons with npm installs
+
+Since odiff 4.4, `npm install -g odiff-bin` puts a Node.js launcher on the
+PATH that starts Node before running the native binary, adding tens of
+milliseconds to every comparison. Odiffr detects this automatically and calls
+the native binary inside the npm installation directly, falling back to the
+launcher if it cannot be found. `odiff_info()` shows the launcher it was
+resolved from. To use the PATH entry as-is, set
+`options(odiffr.resolve_npm = FALSE)`; a binary set with
+`options(odiffr.path = ...)` is always used exactly as given.
 
 ## Supported Formats
 
@@ -387,6 +438,28 @@ options(odiffr.path = "/validated/bin/odiff-4.1.2")
 info <- odiff_info()
 sprintf("Using odiff %s from %s", info$version, info$source)
 ```
+
+### Audit records
+
+`audit_record()` creates a machine-readable evidence record of comparisons,
+supporting audit trails: SHA-256 (or MD5) hashes and sizes of every input and
+diff image, the outcome of each comparison, the parameters used, and the
+environment (odiffr and odiff versions, odiff binary path and hash, R
+version, platform, user and a UTC timestamp).
+
+```r
+result <- odiff_run("baseline.png", "current.png", "diff.png", threshold = 0.05)
+audit_record(result, file = "audit.json")   # parameters recorded automatically
+
+# Batch results: pass the parameters used; CSV has one row per comparison
+results <- compare_image_dirs("baseline/", "current/", threshold = 0.05)
+audit_record(results, file = "audit.csv", format = "csv",
+             params = list(threshold = 0.05))
+```
+
+JSON output needs the jsonlite package and SHA-256 hashing needs openssl or
+digest (`hash = "md5"` works with base R alone). See `?audit_record` for the
+full schema.
 
 ## Performance
 
