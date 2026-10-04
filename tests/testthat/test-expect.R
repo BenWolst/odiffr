@@ -418,8 +418,7 @@ test_that("get_diff_dir uses tempdir() outside tests and package roots", {
 
   withr::local_dir(withr::local_tempdir())
   res <- odiffr:::get_diff_dir()
-  expect_true(startsWith(normalizePath(res, mustWork = FALSE),
-                         normalizePath(tempdir())))
+  expect_equal(res, file.path(tempdir(), "odiffr-diffs"))
   expect_false(grepl("tests[/\\\\]testthat", res))
 
   # From a package root: tests/testthat/_odiffr
