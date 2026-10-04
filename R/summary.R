@@ -199,6 +199,11 @@ print.odiffr_batch_summary <- function(x, ...) {
 # image (img2), or "pair N" when img2 is not a file path (e.g. a magick image
 # or plot). With `use_img1 = TRUE`, the baseline (img1) is tried next.
 .row_label <- function(row, use_img1 = FALSE) {
+  # Snapshot reports carry the snapshot's path relative to _snaps
+  if ("snapshot" %in% names(row)) {
+    snap <- as.character(row$snapshot[[1]])
+    if (!is.na(snap) && nzchar(snap)) return(snap)
+  }
   img2 <- if ("img2" %in% names(row)) as.character(row$img2[[1]]) else NA_character_
   if (!.is_placeholder_path(img2)) return(.path_basename(img2))
   if (use_img1 && "img1" %in% names(row)) {

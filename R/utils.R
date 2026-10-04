@@ -249,6 +249,11 @@
          call. = FALSE)
   }
 
+  if (grepl("[/\\\\]$", path)) {
+    stop("diff_output must be a file path, not a directory: ", path,
+         call. = FALSE)
+  }
+
   # Ensure a .png extension: odiff only writes PNG and fails to save a diff
   # image whose path has no (or another) extension.
   ext <- tools::file_ext(path)
@@ -270,7 +275,12 @@
     dir.create(parent_dir, recursive = TRUE)
   }
 
-  normalizePath(path, mustWork = FALSE)
+  # Absolute path in the platform's native form whether or not the file
+  # exists yet (normalizePath() leaves nonexistent paths relative on Unix)
+  normalizePath(
+    file.path(normalizePath(parent_dir, mustWork = FALSE), basename(path)),
+    mustWork = FALSE
+  )
 }
 
 # Validate odiff_run() options
@@ -322,8 +332,34 @@
     stop("timeout must be a single non-negative number of seconds ",
          "(0 or Inf for no timeout).", call. = FALSE)
   }
-  if (is.infinite(timeout) || timeout == 0) {
+  # system2() needs a timeout that fits in an integer; treat larger values
+  # as no timeout
+  if (is.infinite(timeout) || timeout == 0 || timeout > .Machine$integer.max) {
     return(0)
   }
   ceiling(timeout)
+}
+
+# Image dimensions (width, height) without decoding, or NULL if unknown.
+# PNG is read from its IHDR header; other formats use magick if installed.
+.image_dimensions <- function(path) {
+  if (!file.exists(path)) return(NULL)
+  head <- tryCatch({
+    con <- file(path, "rb")
+    on.exit(close(con), add = TRUE)
+    readBin(con, "raw", 24L)
+  }, error = function(e) raw(0))
+  png_sig <- as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))
+  if (length(head) == 24L && identical(head[1:8], png_sig)) {
+    be32 <- function(b) sum(as.numeric(as.integer(b)) * 256^(3:0))
+    return(c(be32(head[17:20]), be32(head[21:24])))
+  }
+  if (requireNamespace("magick", quietly = TRUE)) {
+    info <- tryCatch(magick::image_info(magick::image_read(path)),
+                     error = function(e) NULL)
+    if (!is.null(info) && nrow(info) >= 1) {
+      return(c(info$width[1], info$height[1]))
+    }
+  }
+  NULL
 }

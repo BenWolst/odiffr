@@ -108,8 +108,8 @@ expect_images_match <- function(actual,
   check_testthat()
 
   # Capture labels for error messages (no rlang dependency)
-  act_label <- if (!is.null(label)) label else deparse(substitute(actual))
-  exp_label <- deparse(substitute(expected))
+  act_label <- if (!is.null(label)) label else paste(deparse(substitute(actual)), collapse = " ")
+  exp_label <- paste(deparse(substitute(expected)), collapse = " ")
 
   # Skip if odiff not available
   if (!odiff_available()) {
@@ -188,8 +188,8 @@ expect_images_differ <- function(img1,
   check_testthat()
 
   # Capture labels for error messages
-  lab1 <- if (!is.null(label)) label else deparse(substitute(img1))
-  lab2 <- deparse(substitute(img2))
+  lab1 <- if (!is.null(label)) label else paste(deparse(substitute(img1)), collapse = " ")
+  lab2 <- paste(deparse(substitute(img2)), collapse = " ")
 
   # Skip if odiff not available
   if (!odiff_available()) {
@@ -252,20 +252,17 @@ get_diff_dir <- function() {
     return(custom)
   }
 
-  # Auto-detect: tests/testthat/_odiffr/
-  # Use testthat's test_path() if available and we're in a test context
-  if (requireNamespace("testthat", quietly = TRUE)) {
-    path <- tryCatch(
-      testthat::test_path("_odiffr"),
-      error = function(e) NULL
-    )
-    if (!is.null(path)) {
-      return(path)
-    }
+  # During tests: tests/testthat/_odiffr/
+  if (requireNamespace("testthat", quietly = TRUE) && testthat::is_testing()) {
+    return(testthat::test_path("_odiffr"))
   }
 
-  # Fallback for non-testthat contexts
-  file.path("tests", "testthat", "_odiffr")
+  # From a package root: tests/testthat/_odiffr/; anywhere else use the
+  # session temp directory rather than writing into the working directory
+  if (dir.exists(file.path("tests", "testthat"))) {
+    return(file.path("tests", "testthat", "_odiffr"))
+  }
+  file.path(tempdir(), "odiffr-diffs")
 }
 
 
@@ -334,15 +331,31 @@ generate_diff_filename <- function(actual, expected, diff_dir,
         NA_character_
       }
     }
+    # Identity of each side: the full path for files, the label otherwise
+    id_part <- function(x, part) {
+      if (is_path(x)) normalizePath(x, winslash = "/", mustWork = FALSE) else part
+    }
+    # Name qualified by the parent directory, for files with the same basename
+    dir_part <- function(x, part) {
+      if (is_path(x)) {
+        paste0(.sanitize_filename(basename(dirname(x))), "_",
+               .sanitize_filename(part))
+      } else {
+        .sanitize_filename(part)
+      }
+    }
     a <- lab_part(actual, act_label)
     e <- lab_part(expected, exp_label)
     if (is.na(a) || is.na(e)) {
       candidates <- "odiffr_diff"
     } else {
-      candidates <- paste0(.sanitize_filename(a), "_vs_",
-                           .sanitize_filename(e))
+      candidates <- unique(c(
+        paste0(.sanitize_filename(a), "_vs_", .sanitize_filename(e)),
+        paste0(dir_part(actual, a), "_vs_", dir_part(expected, e))
+      ))
     }
-    key <- paste("other", a, e, sep = "\r")
+    key <- paste("other", id_part(actual, a), id_part(expected, e),
+                 sep = "\r")
   }
 
   # Stable identity of the output directory

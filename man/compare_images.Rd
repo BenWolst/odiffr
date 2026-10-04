@@ -19,8 +19,9 @@ compare_images(
 \arguments{
 \item{img1}{Path to the first image, a magick-image object, or a plot:
 a ggplot object, a function of no arguments that draws a plot (base or
-grid graphics) when called, or a recorded plot
-(\code{\link[grDevices:recordplot]{grDevices::recordPlot()}}).}
+grid graphics) or returns a ggplot, lattice or grid object when called,
+or a recorded plot
+(\code{\link[grDevices:recordPlot]{grDevices::recordPlot()}}).}
 
 \item{img2}{Path to the second image, a magick-image object, or a plot
 (see \code{img1}).}
@@ -28,7 +29,7 @@ grid graphics) when called, or a recorded plot
 \item{diff_output}{Path for the diff output image (PNG only). Use \code{NULL}
 for no diff output, or \code{TRUE} to auto-generate a temporary file path.}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1.}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

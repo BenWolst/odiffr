@@ -522,3 +522,58 @@ test_that(".format_regions handles empty list", {
   result <- odiffr:::.format_regions(list())
   expect_equal(result, "")
 })
+
+# Regression tests ---------------------------------------------------------
+
+test_that(".validate_diff_output rejects directory paths", {
+  temp_dir <- withr::local_tempdir()
+  expect_error(odiffr:::.validate_diff_output(paste0(temp_dir, "/")),
+               "must be a file path, not a directory")
+  expect_error(odiffr:::.validate_diff_output(paste0(temp_dir, "\\")),
+               "must be a file path, not a directory")
+  expect_error(odiffr:::.validate_diff_output("diffs/"), "not a directory")
+})
+
+test_that(".validate_diff_output returns an absolute path for new files", {
+  temp_dir <- withr::local_tempdir()
+  withr::local_dir(temp_dir)
+
+  result <- odiffr:::.validate_diff_output(file.path("out", "new.png"))
+  expect_false(file.exists(result))
+  expect_true(startsWith(result, normalizePath(temp_dir, mustWork = FALSE)))
+  expect_equal(basename(result), "new.png")
+  expect_equal(normalizePath(dirname(result)),
+               normalizePath(file.path(temp_dir, "out")))
+
+  result <- odiffr:::.validate_diff_output("plain.png")
+  expect_equal(result, normalizePath(file.path(normalizePath(temp_dir),
+                                               "plain.png"), mustWork = FALSE))
+})
+
+test_that(".validate_timeout treats values beyond an integer as no timeout", {
+  expect_equal(odiffr:::.validate_timeout(.Machine$integer.max),
+               .Machine$integer.max)
+  expect_equal(odiffr:::.validate_timeout(.Machine$integer.max + 1), 0)
+  expect_equal(odiffr:::.validate_timeout(1e10), 0)
+  expect_equal(odiffr:::.validate_timeout(1e300), 0)
+})
+
+test_that(".image_dimensions() reads PNG headers and other formats", {
+  png_file <- create_test_image(30, 20, "red")
+  on.exit(unlink(png_file), add = TRUE)
+  expect_equal(odiffr:::.image_dimensions(png_file), c(30, 20))
+
+  not_image <- tempfile(fileext = ".png")
+  writeLines("not an image at all, just some text", not_image)
+  on.exit(unlink(not_image), add = TRUE)
+  expect_null(odiffr:::.image_dimensions(not_image))
+  expect_null(suppressWarnings(
+    odiffr:::.image_dimensions(tempfile(fileext = ".png"))
+  ))
+
+  skip_if_not_installed("magick")
+  jpg <- tempfile(fileext = ".jpg")
+  on.exit(unlink(jpg), add = TRUE)
+  magick::image_write(magick::image_read(png_file), jpg, format = "jpeg")
+  expect_equal(odiffr:::.image_dimensions(jpg), c(30, 20))
+})

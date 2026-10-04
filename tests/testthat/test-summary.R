@@ -486,3 +486,15 @@ test_that(".fmt_pct and .fmt_count handle NA", {
   expect_equal(odiffr:::.fmt_pct(50, 1), "50.0%")
   expect_equal(odiffr:::.fmt_count(c(100000, NA)), c("100000", "-"))
 })
+
+test_that(".row_label() prefers the snapshot column", {
+  row <- data.frame(pair_id = 1L, img1 = "_snaps/linux/plots/var.png",
+                    img2 = "_snaps/linux/plots/var.new.png",
+                    snapshot = "linux/plots/var.png",
+                    stringsAsFactors = FALSE)
+  expect_equal(odiffr:::.row_label(row), "linux/plots/var.png")
+  row$snapshot <- NA_character_
+  expect_equal(odiffr:::.row_label(row), "var.new.png")
+  row$snapshot <- NULL
+  expect_equal(odiffr:::.row_label(row), "var.new.png")
+})

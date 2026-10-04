@@ -146,7 +146,8 @@ print.odiffr_plot_options <- function(x, ...) {
 
 # Internal: render a plot input to a PNG file and return the path.
 # - ggplot objects are printed
-# - functions are called with no arguments (a returned ggplot is printed)
+# - functions are called with no arguments (a returned ggplot or lattice
+#   plot is printed, and a returned grob is drawn)
 # - recorded plots are replayed with grDevices::replayPlot()
 # The device is always closed (even on error) and the previously active
 # device is restored.
@@ -179,8 +180,12 @@ print.odiffr_plot_options <- function(x, ...) {
     print(x)
   } else {
     value <- x()
-    if (.is_ggplot(value)) {
+    # Plot objects returned by the function only appear when printed/drawn
+    if (.is_ggplot(value) || inherits(value, "trellis")) {
       print(value)
+    } else if (inherits(value, "grob") || inherits(value, "gList")) {
+      grid::grid.newpage()
+      grid::grid.draw(value)
     }
   }
 

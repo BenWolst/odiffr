@@ -8,13 +8,14 @@
 #'
 #' @param img1 Path to the first image, a magick-image object, or a plot:
 #'   a ggplot object, a function of no arguments that draws a plot (base or
-#'   grid graphics) when called, or a recorded plot
+#'   grid graphics) or returns a ggplot, lattice or grid object when called,
+#'   or a recorded plot
 #'   ([grDevices::recordPlot()]).
 #' @param img2 Path to the second image, a magick-image object, or a plot
 #'   (see `img1`).
 #' @param diff_output Path for the diff output image (PNG only). Use `NULL`
 #'   for no diff output, or `TRUE` to auto-generate a temporary file path.
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Default is 0.1.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE`.
@@ -394,6 +395,9 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
         diff_output <- file.path(
           diff_dir, sprintf("%03d_%s_diff.png", ids[[i]], base_name)
         )
+        # odiff writes no diff image for matching images, so remove one left
+        # over from a previous run in the same diff_dir
+        if (file.exists(diff_output)) unlink(diff_output)
       }
 
       result <- compare_images(

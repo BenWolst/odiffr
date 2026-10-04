@@ -41,7 +41,7 @@ the package to download a binary to your user cache.
 ## Installation
 
 ```{r eval=FALSE}
-# From CRAN (when available)
+# From CRAN
 install.packages("odiffr")
 
 # Development version
@@ -94,14 +94,14 @@ result$diff_output
 
 ### Threshold
 
-The threshold parameter (0-1) controls color sensitivity. Lower values are more
+The threshold parameter (0-1) controls colour sensitivity. Lower values are more
 precise:
 
 ```{r eval=FALSE}
 # Very strict comparison
 result <- compare_images("img1.png", "img2.png", threshold = 0.01)
 
-# More lenient (ignore minor color variations)
+# More lenient (ignore minor colour variations)
 result <- compare_images("img1.png", "img2.png", threshold = 0.2)
 ```
 
@@ -213,12 +213,13 @@ The `odiffr_batch` object returned by `compare_images_batch()` and
 | ----------------- | --------- | --------------------------------------------- |
 | `pair_id`         | integer   | Sequential comparison ID                      |
 | `match`           | logical   | `TRUE` if images match                        |
-| `reason`          | character | `"match"`, `"pixel-diff"`, or `"layout-diff"` |
-| `diff_count`      | integer   | Number of different pixels                    |
-| `diff_percentage` | numeric   | Percentage of pixels different                |
+| `reason`          | character | `"match"`, `"pixel-diff"`, `"layout-diff"`, `"missing"` or `"error"` |
+| `diff_count`      | integer   | Number of different pixels (`0` for a match, `NA` if unknown) |
+| `diff_percentage` | numeric   | Percentage of pixels different (`0` for a match, `NA` if unknown) |
 | `diff_output`     | character | Path to diff image, or `NA`                   |
 | `img1`            | character | Path to baseline image                        |
 | `img2`            | character | Path to current image                         |
+| `error`           | character | Error message when `reason` is `"missing"` or `"error"`, otherwise `NA` |
 
 ### Parallel Processing
 
@@ -485,6 +486,25 @@ Use a specific binary (useful for validated environments):
 options(odiffr.path = "/validated/bin/odiff-4.1.2")
 ```
 
+### Faster comparisons with npm installs
+
+Since odiff 4.4, the npm package `odiff-bin` installs a Node.js launcher that
+starts Node before running the native binary, which adds tens of milliseconds
+to each comparison. Odiffr detects such a launcher on the PATH automatically
+and runs the native binary from the npm installation directly (falling back to
+the launcher if the binary cannot be found). Nothing needs configuring:
+
+```{r eval=FALSE}
+info <- odiff_info()
+info$path  # the native binary
+info$shim  # the npm launcher it was resolved from (NA if none)
+
+# Opt out and use the PATH entry as-is
+options(odiffr.resolve_npm = FALSE)
+```
+
+A path set with `options(odiffr.path = ...)` is always used exactly as given.
+
 ### Cache Management
 
 ```{r}
@@ -600,7 +620,7 @@ on CRAN. To use odiff comparison for image files you write yourself, pass
 ### Diff Images on Failure
 
 When `expect_images_match()` fails, a diff image is automatically saved to
-`tests/testthat/_odiffr/` for debugging. Control this behavior with options:
+`tests/testthat/_odiffr/` for debugging. Control this behaviour with options:
 
 ```{r eval=FALSE}
 # Disable diff image saving
@@ -636,3 +656,35 @@ options(odiffr.path = "/validated/bin/odiff-4.1.2")
 info <- odiff_info()
 sprintf("Using odiff %s from %s", info$version, info$source)
 ```
+
+### Audit records
+
+`audit_record()` turns comparison results into a documented, machine-readable
+evidence record that supports audit trails. For every comparison it records
+the image paths with their hashes and sizes, the diff image (if any) and its
+hash, and the outcome (`match`, `reason`, `diff_count`, `diff_percentage`,
+`error`). A header records the schema version (`"odiffr-audit/1"`), a UTC
+timestamp, the odiffr and odiff versions, the odiff binary path and hash, the
+R version, platform and user, and the comparison parameters.
+
+```{r eval=FALSE}
+# odiff_run() results carry their parameters
+result <- odiff_run("baseline.png", "current.png", "diff.png",
+                    threshold = 0.05)
+rec <- audit_record(result)
+rec$header$odiff_version
+rec$comparisons[, c("img1_hash", "img2_hash", "match")]
+
+# Write a JSON evidence file (requires jsonlite)
+audit_record(result, file = "validation/comparison-audit.json")
+
+# Batch results: pass the parameters you used; CSV has one row per pair
+results <- compare_image_dirs("baseline/", "current/", threshold = 0.05)
+audit_record(results, file = "validation/audit.csv", format = "csv",
+             params = list(threshold = 0.05))
+```
+
+SHA-256 hashing uses the openssl or digest package; use `hash = "md5"` to
+rely on base R only. Files are hashed when `audit_record()` is called, so
+create the record straight after the comparison. See `?audit_record` for the
+full schema.

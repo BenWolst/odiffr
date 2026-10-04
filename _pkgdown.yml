@@ -8,6 +8,15 @@ navbar:
     left: [intro, reference, articles]
     right: [search, github]
 
+articles:
+  - title: Guides
+    navbar: ~
+    contents:
+      - getting-started
+      - shinytest2
+      - pdf-outputs
+      - web-pages
+
 reference:
   - title: Image Comparison
     contents:
@@ -21,6 +30,9 @@ reference:
       - odiff_run
       - ignore_region
       - plot_options
+      - odiff_preset
+      - compare_pdfs
+      - compare_pdf_dirs
 
   - title: Reviewing and Approving Changes
     contents:
@@ -33,6 +45,8 @@ reference:
       - batch_report
       - batch_markdown
       - batch_junit
+      - snapshot_report
+      - audit_record
 
   - title: testthat Expectations
     contents:

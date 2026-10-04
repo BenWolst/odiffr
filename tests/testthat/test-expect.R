@@ -2,6 +2,7 @@
 
 test_that("expect_images_match passes for identical images", {
   skip_if_no_odiff()
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
 
   img <- create_test_image(100, 100, "red")
   on.exit(unlink(img), add = TRUE)
@@ -13,6 +14,7 @@ test_that("expect_images_match passes for identical images", {
 
 test_that("expect_images_match returns result invisibly", {
   skip_if_no_odiff()
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
 
   img <- create_test_image(100, 100, "blue")
   on.exit(unlink(img), add = TRUE)
@@ -24,6 +26,7 @@ test_that("expect_images_match returns result invisibly", {
 
 test_that("expect_images_match fails for different images", {
   skip_if_no_odiff()
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
 
   img1 <- create_test_image(100, 100, "red")
   img2 <- create_modified_image(img1, "region")
@@ -37,6 +40,7 @@ test_that("expect_images_match fails for different images", {
 
 test_that("expect_images_match failure message includes diff details", {
   skip_if_no_odiff()
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
 
   img1 <- create_test_image(100, 100, "red")
   img2 <- create_modified_image(img1, "pixel")
@@ -362,4 +366,105 @@ test_that("expect_images_match works with magick objects", {
 
   # Magick vs path should also work
   expect_silent(expect_images_match(img1_path, img1_magick))
+})
+
+# Regression tests ---------------------------------------------------------
+
+test_that("failure messages do not repeat for multi-line expressions", {
+  skip_if_no_odiff()
+  withr::local_options(odiffr.save_diff = FALSE)
+
+  img1 <- create_test_image(100, 100, "red")
+  img2 <- create_modified_image(img1, "region")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  err <- tryCatch(
+    expect_images_match(
+      {
+        x <- img2
+        x
+      },
+      img1
+    ),
+    expectation_failure = function(e) e
+  )
+  expect_s3_class(err, "expectation_failure")
+  expect_length(gregexpr("does not match expected", err$message)[[1]], 1)
+
+  err <- tryCatch(
+    expect_images_differ(
+      {
+        x <- img1
+        x
+      },
+      img1
+    ),
+    expectation_failure = function(e) e
+  )
+  expect_s3_class(err, "expectation_failure")
+  expect_length(gregexpr("unexpectedly matches", err$message)[[1]], 1)
+})
+
+test_that("get_diff_dir uses test_path() inside a test run", {
+  withr::local_options(odiffr.save_diff = NULL, odiffr.diff_dir = NULL)
+  expect_true(testthat::is_testing())
+  expect_equal(odiffr:::get_diff_dir(), testthat::test_path("_odiffr"))
+})
+
+test_that("get_diff_dir uses tempdir() outside tests and package roots", {
+  withr::local_options(odiffr.save_diff = NULL, odiffr.diff_dir = NULL)
+  withr::local_envvar(TESTTHAT = "false")
+  expect_false(testthat::is_testing())
+
+  withr::local_dir(withr::local_tempdir())
+  res <- odiffr:::get_diff_dir()
+  expect_equal(res, file.path(tempdir(), "odiffr-diffs"))
+  expect_false(grepl("tests[/\\\\]testthat", res))
+
+  # From a package root: tests/testthat/_odiffr
+  dir.create(file.path("tests", "testthat"), recursive = TRUE)
+  expect_equal(odiffr:::get_diff_dir(), file.path("tests", "testthat", "_odiffr"))
+})
+
+test_that("plot diffs against same-named baselines get distinct names", {
+  diff_dir <- withr::local_tempdir()
+  root <- withr::local_tempdir()
+  light <- file.path(root, "light", "base.png")
+  dark <- file.path(root, "dark", "base.png")
+  draw <- function() plot(1)
+
+  f1 <- odiffr:::generate_diff_filename(draw, light, diff_dir,
+                                        act_label = "draw")
+  f2 <- odiffr:::generate_diff_filename(draw, dark, diff_dir,
+                                        act_label = "draw")
+  expect_false(identical(f1, f2))
+  expect_equal(basename(f1), "draw_vs_base.png")
+  expect_equal(basename(f2), "draw_vs_dark_base.png")
+  # Stable on rerun
+  expect_equal(odiffr:::generate_diff_filename(draw, dark, diff_dir,
+                                               act_label = "draw"), f2)
+})
+
+test_that("a passing plot expectation keeps another one's failure diff", {
+  skip_if_no_odiff()
+  diff_dir <- withr::local_tempdir()
+  withr::local_options(odiffr.diff_dir = diff_dir, odiffr.save_diff = TRUE)
+  opts <- plot_options(width = 3, height = 3, res = 40)
+
+  draw <- function() graphics::plot(1:10)
+  root <- withr::local_tempdir()
+  light <- file.path(root, "light", "base.png")
+  dark <- file.path(root, "dark", "base.png")
+  dir.create(dirname(light))
+  dir.create(dirname(dark))
+  file.copy(odiffr:::.render_plot_with_options(draw, opts), light)
+  file.copy(odiffr:::.render_plot_with_options(function() graphics::plot(10:1),
+                                               opts), dark)
+
+  expect_failure(expect_images_match(draw, dark, plot_options = opts))
+  diffs <- list.files(diff_dir)
+  expect_length(diffs, 1)
+
+  expect_success(expect_images_match(draw, light, plot_options = opts))
+  expect_equal(list.files(diff_dir), diffs)
 })

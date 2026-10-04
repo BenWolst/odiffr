@@ -1,7 +1,58 @@
-# odiffr (development version)
+# odiffr 0.6.0
+
+## Breaking changes
+
+* odiffr now requires odiff >= 4.1.1 (previously documented as >= 3.0.0).
+  odiff 4.0.0 produced incomplete machine-readable output.
+* `compare_image_dirs()` now reports files missing from `current_dir` as
+  failing rows with `reason = "missing"` instead of silently dropping them
+  (the warning is still emitted), so a disappearing screenshot now fails CI.
+* `compare_images_batch()` (and therefore `compare_image_dirs()`) no longer
+  stops when a single pair fails, including a nonexistent path or a parallel
+  worker crash; that pair is reported as a `reason = "error"` row with the
+  message in the new `error` column. Empty input returns an empty
+  `odiffr_batch`, and malformed list input gives a clear error.
+* `diff_count` and `diff_percentage` are now `0` (rather than `NA`) for
+  matching images. `NA` now means "unknown" (layout difference or error).
+* The `stdout` element of `odiff_run()` results now holds odiff's
+  machine-readable output (e.g. `"126;1.26"`) rather than the human-readable
+  message, and `stderr` is now populated.
+* `expect_images_differ()` now fails, rather than passes, when the images
+  cannot be compared.
+* The default `compare_image_dirs()` pattern now matches `.bmp` (supported by
+  odiff) and no longer matches `.tif` (rejected by odiff; use `.tiff`).
+* `threshold`, `diff_color` and `diff_overlay` are validated up front, so
+  invalid values (e.g. `diff_color = "red"`, which odiff rejects) now error
+  in R. Small thresholds are no longer passed in scientific notation.
 
 ## New Features
 
+* `find_odiff()` now bypasses the Node.js launcher script installed by
+  `npm install -g odiff-bin` (odiff >= 4.4) and calls the native odiff binary
+  directly, making each comparison around 5x faster. A path set with
+  `options(odiffr.path)` is used as-is, and `options(odiffr.resolve_npm = FALSE)`
+  disables the lookup. `odiff_info()` gains a `shim` field.
+* `compare_file_odiff()` and `expect_snapshot_image()` now write a diff image
+  when a snapshot comparison fails (outside `_snaps/`, in `tests/testthat/_odiffr/`
+  by default) and report its location. Both gain a `preset` argument, and the
+  new `odiff_preset()` provides calibrated settings: `"strict"`, `"default"`,
+  `"screenshot"` (ignores anti-aliasing noise) and `"cross_platform"`.
+  `compare_file_odiff()` works as the `compare` function of
+  `shinytest2::AppDriver$expect_screenshot()`; see
+  `vignette("shinytest2", package = "odiffr")`.
+* `snapshot_report()` builds an HTML, Markdown or JUnit report of changed image
+  snapshots (`*.new.png` files under `_snaps/`), for reviewing snapshot
+  failures in CI.
+* `compare_pdfs()` compares two PDF files page by page, and `compare_pdf_dirs()`
+  compares directories of PDFs, returning batch results that work with
+  `summary()`, `batch_report()`, `batch_markdown()` and `batch_junit()`.
+  Requires the pdftools package. See `vignette("pdf-outputs", package = "odiffr")`.
+* `audit_record()` writes a JSON or CSV record of comparisons, including
+  input and output file hashes, the odiff version and binary hash, parameters,
+  timestamp and platform. `odiff_run()` results gain a `params` element with
+  the effective comparison parameters.
+* New vignette on comparing web pages and htmlwidgets screenshots taken with
+  webshot2.
 * `expect_snapshot_image()` is a testthat snapshot expectation that compares
   images with odiff, so baselines are managed with `testthat::snapshot_review()`
   and `testthat::snapshot_accept()`. `compare_file_odiff()` returns the
@@ -43,20 +94,7 @@
 * odiff is now always run with `--parsable-stdout` and its machine-readable
   output is parsed strictly. stdout and stderr are captured separately, so the
   `stderr` element is now populated.
-* `diff_count` and `diff_percentage` are now `0` (rather than `NA`) for
-  matching images. `NA` now means "unknown" (layout difference or error).
-* `compare_image_dirs()` now reports files missing from `current_dir` as
-  failing rows with `reason = "missing"` instead of silently dropping them
-  (the warning is still emitted), so a disappearing screenshot fails CI.
-* `compare_images_batch()` no longer aborts when a single pair fails
-  (including a nonexistent path, or a parallel worker crash); that pair is
-  reported as a `reason = "error"` row. Empty input returns an empty
-  `odiffr_batch`, and malformed list input gives a clear error.
 * `_R_CHECK_LIMIT_CORES_=false` no longer limits parallel workers to 2.
-* The default `compare_image_dirs()` pattern now matches `.bmp` (supported by
-  odiff) and no longer matches `.tif` (rejected by odiff; use `.tiff`).
-* `expect_images_differ()` now fails, rather than passes, when the images
-  cannot be compared.
 * `expect_images_match()` uses deterministic diff file names, so re-runs
   overwrite the previous diff instead of accumulating files in `_odiffr/`, and
   a stale diff is removed once the expectation passes.
@@ -65,8 +103,6 @@
 * `timeout` values below one second are rounded up to one second instead of
   silently disabling the timeout; `0` or `Inf` means no timeout. Timeouts are
   reported via `error`.
-* `threshold`, `diff_color` and `diff_overlay` are validated up front, and
-  small thresholds are no longer passed in scientific notation.
 * `odiff_version()` is cached per binary, so `enable_asm`/`diff_cols` no
   longer spawn `odiff --version` on every comparison.
 * `batch_report()`: image links are proper `file:///` URIs (or

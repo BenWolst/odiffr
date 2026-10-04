@@ -428,3 +428,122 @@ test_that("odiff_run reports timeouts as errors", {
   expect_match(result$error, "timed out after 1 second")
   expect_true(result$duration < 4.5)
 })
+
+test_that("odiff_run never reports a stale diff image", {
+  skip_if_no_odiff()
+
+  red <- create_test_image(100, 100, "red")
+  blue <- create_test_image(100, 100, "blue")
+  big <- create_test_image(120, 100, "red")
+  bad <- tempfile(fileext = ".png")
+  writeLines("not a png", bad)
+  on.exit(unlink(c(red, blue, big, bad)), add = TRUE)
+  diff_file <- file.path(withr::local_tempdir(), "diff.png")
+
+  # A differing run leaves a diff image ...
+  result <- odiff_run(red, blue, diff_output = diff_file)
+  expect_equal(result$reason, "pixel-diff")
+  expect_true(file.exists(diff_file))
+
+  # ... which a later match, layout diff or error must not report
+  result <- odiff_run(red, red, diff_output = diff_file)
+  expect_true(result$match)
+  expect_null(result$diff_output)
+  expect_false(file.exists(diff_file))
+
+  odiff_run(red, blue, diff_output = diff_file)
+  result <- odiff_run(red, big, diff_output = diff_file, fail_on_layout = TRUE)
+  expect_equal(result$reason, "layout-diff")
+  expect_null(result$diff_output)
+  expect_false(file.exists(diff_file))
+
+  odiff_run(red, blue, diff_output = diff_file)
+  result <- odiff_run(bad, red, diff_output = diff_file)
+  expect_equal(result$reason, "error")
+  expect_null(result$diff_output)
+  expect_false(file.exists(diff_file))
+})
+
+test_that("odiff_run reports a size mismatch as layout-diff on odiff < 4.5.0", {
+  skip_if_no_odiff()
+
+  small <- create_test_image(100, 100, "red")
+  wide <- create_test_image(120, 100, "red")
+  on.exit(unlink(c(small, wide)), add = TRUE)
+
+  # Old odiff without --fail-on-layout reports such images as a match
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.1.1",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "0", stderr = character(), exit_code = 0L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(small, wide)
+  expect_false(result$match)
+  expect_equal(result$reason, "layout-diff")
+  expect_identical(result$diff_count, NA_integer_)
+  expect_identical(result$diff_percentage, NA_real_)
+
+  # Same-sized images are still a match
+  result <- odiff_run(small, small)
+  expect_true(result$match)
+  expect_equal(result$reason, "match")
+  expect_equal(result$diff_count, 0L)
+})
+
+test_that("odiff_run leaves odiff >= 4.5.0 match results alone", {
+  skip_if_no_odiff()
+
+  small <- create_test_image(100, 100, "red")
+  wide <- create_test_image(120, 100, "red")
+  on.exit(unlink(c(small, wide)), add = TRUE)
+
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.5.0",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "0", stderr = character(), exit_code = 0L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(small, wide)
+  expect_true(result$match)
+  expect_equal(result$reason, "match")
+})
+
+test_that("odiff_run with a real odiff < 4.5.0 binary reports layout-diff", {
+  # Point ODIFFR_TEST_OLD_ODIFF at an odiff 4.1.x binary to run this test
+  old_bin <- Sys.getenv("ODIFFR_TEST_OLD_ODIFF")
+  skip_if(!nzchar(old_bin) || !file.exists(old_bin),
+          "ODIFFR_TEST_OLD_ODIFF not set to an odiff binary")
+  withr::local_options(odiffr.path = old_bin)
+  ver <- odiff_version()
+  skip_if(is.na(ver) || utils::compareVersion(ver, "4.5.0") >= 0,
+          "ODIFFR_TEST_OLD_ODIFF is not an odiff < 4.5.0")
+
+  small <- create_test_image(100, 100, "red")
+  wide <- create_test_image(120, 100, "red")
+  on.exit(unlink(c(small, wide)), add = TRUE)
+
+  result <- odiff_run(small, wide)
+  expect_equal(result$exit_code, 0L)  # odiff itself reports a match
+  expect_false(result$match)
+  expect_equal(result$reason, "layout-diff")
+  expect_identical(result$diff_count, NA_integer_)
+
+  expect_true(odiff_run(small, small)$match)
+  expect_equal(odiff_run(small, wide, fail_on_layout = TRUE)$reason,
+               "layout-diff")
+})
+
+test_that("odiff_run accepts timeouts larger than an integer", {
+  skip_if_no_odiff()
+  img <- create_test_image(10, 10, "red")
+  on.exit(unlink(img), add = TRUE)
+
+  result <- odiff_run(img, img, timeout = 1e10)
+  expect_true(result$match)
+  expect_identical(result$error, NA_character_)
+})
