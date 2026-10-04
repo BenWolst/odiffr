@@ -546,7 +546,8 @@ test_that(".validate_diff_output returns an absolute path for new files", {
                normalizePath(file.path(temp_dir, "out")))
 
   result <- odiffr:::.validate_diff_output("plain.png")
-  expect_equal(result, file.path(normalizePath(temp_dir), "plain.png"))
+  expect_equal(result, normalizePath(file.path(normalizePath(temp_dir),
+                                               "plain.png"), mustWork = FALSE))
 })
 
 test_that(".validate_timeout treats values beyond an integer as no timeout", {
