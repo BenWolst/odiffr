@@ -140,5 +140,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Ben Wolstenholme \email{odiffr@benwolst.dev}
 
+Authors:
+\itemize{
+  \item Ben Wolstenholme \email{odiffr@benwolst.dev}
+}
+
 }
 \keyword{internal}

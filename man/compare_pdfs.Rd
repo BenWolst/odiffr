@@ -74,7 +74,7 @@ for rendering. Only PDF input is supported: convert RTF or DOCX outputs
 to PDF first, for example with LibreOffice
 (\verb{soffice --headless --convert-to pdf file.rtf}).
 
-Pages are rendered with \code{\link[pdftools:pdf_render_page]{pdftools::pdf_convert()}} to files named
+Pages are rendered with \code{\link[pdftools:pdf_convert]{pdftools::pdf_convert()}} to files named
 \verb{<pdf name>_p001.png}, \verb{<pdf name>_p002.png}, ... in separate \verb{baseline/}
 and \verb{current/} directories. If \code{diff_dir} is \code{NULL}, they are written to
 a new directory inside \code{\link[=tempdir]{tempdir()}}, which persists until the R session

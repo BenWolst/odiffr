@@ -23,7 +23,7 @@ expect_snapshot_image(
 formats are converted to PNG with magick), a magick-image
 object, a ggplot object, a function of no arguments that draws a plot
 (base or grid graphics) when called, or a recorded plot
-(\code{\link[grDevices:recordplot]{grDevices::recordPlot()}}). Plots are rendered to PNG using
+(\code{\link[grDevices:recordPlot]{grDevices::recordPlot()}}). Plots are rendered to PNG using
 \code{plot_options}.}
 
 \item{name}{Snapshot file name. A \code{.png} extension is added if missing.
@@ -75,7 +75,7 @@ expectations.
 \code{expect_snapshot_image()} is a testthat snapshot expectation for images
 that compares the image with its stored snapshot using odiff, rather than
 requiring the files to be byte-for-byte identical. Snapshots are managed
-with testthat's usual tools (\code{\link[testthat:snapshot_accept]{testthat::snapshot_review()}},
+with testthat's usual tools (\code{\link[testthat:snapshot_review]{testthat::snapshot_review()}},
 \code{\link[testthat:snapshot_accept]{testthat::snapshot_accept()}}).
 }
 \details{
@@ -108,7 +108,7 @@ expectation fails, so the new image can still be reviewed and accepted.
 }
 \section{Reviewing changes}{
 
-When a snapshot changes, run \code{\link[testthat:snapshot_accept]{testthat::snapshot_review()}} to compare the
+When a snapshot changes, run \code{\link[testthat:snapshot_review]{testthat::snapshot_review()}} to compare the
 old and new images side by side in an interactive viewer, then accept the
 new image with \code{\link[testthat:snapshot_accept]{testthat::snapshot_accept()}} (or from the viewer) if the
 change is intended. Unwanted \code{.new.png} files are removed on the next

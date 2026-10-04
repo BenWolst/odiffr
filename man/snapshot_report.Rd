@@ -67,7 +67,7 @@ Finds the image snapshots that changed in the last test run (the
 \verb{<name>.new.png} files testthat leaves next to \verb{<name>.png} in
 \verb{tests/testthat/_snaps/}), compares each with its baseline using odiff and
 writes an HTML, Markdown or JUnit XML report. Unlike
-\code{\link[testthat:snapshot_accept]{testthat::snapshot_review()}}, this works non-interactively, so it is
+\code{\link[testthat:snapshot_review]{testthat::snapshot_review()}}, this works non-interactively, so it is
 suited to continuous integration.
 }
 \details{

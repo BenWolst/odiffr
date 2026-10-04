@@ -20,7 +20,7 @@ compare_images(
 \item{img1}{Path to the first image, a magick-image object, or a plot:
 a ggplot object, a function of no arguments that draws a plot (base or
 grid graphics) when called, or a recorded plot
-(\code{\link[grDevices:recordplot]{grDevices::recordPlot()}}).}
+(\code{\link[grDevices:recordPlot]{grDevices::recordPlot()}}).}
 
 \item{img2}{Path to the second image, a magick-image object, or a plot
 (see \code{img1}).}
