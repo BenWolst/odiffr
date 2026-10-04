@@ -70,8 +70,13 @@ jobs:
         id: release_notes
         run: |
           set -euo pipefail
-          # Version comes from the git tag (e.g. v0.5.1 -> 0.5.1)
-          VERSION="${GITHUB_REF_NAME#v}"
+          # Version comes from the git tag (e.g. v0.5.1 -> 0.5.1); for manual
+          # runs on a branch, fall back to the DESCRIPTION version
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(sed -n 's/^Version:[[:space:]]*//p' DESCRIPTION)"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           # Extract the section headed '# odiffr <version>' (case-insensitive)
           # up to the next top-level '# ' header; fail if it is missing.
