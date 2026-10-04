@@ -13,7 +13,9 @@ expect_snapshot_image(
   fail_on_layout = TRUE,
   plot_options = NULL,
   variant = NULL,
-  ...
+  ...,
+  preset = NULL,
+  diff_dir = getOption("odiffr.snapshot_diff_dir")
 )
 }
 \arguments{
@@ -32,10 +34,10 @@ file path, or the variable name when \code{x} is a simple variable (e.g.
 within a test file.}
 
 \item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
-Default is 0.1.}
+Default is 0.1 (or the value from \code{preset}).}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.
-Default is \code{FALSE}.}
+Default is \code{FALSE} (or the value from \code{preset}).}
 
 \item{ignore_regions}{List of regions to ignore during comparison.
 Use \code{\link[=ignore_region]{ignore_region()}} to create regions, or pass a data.frame with
@@ -53,6 +55,17 @@ section on platform differences.}
 
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}} (via
 \code{\link[=compare_file_odiff]{compare_file_odiff()}}).}
+
+\item{preset}{Optional name of a comparison preset, see \code{\link[=odiff_preset]{odiff_preset()}}:
+\code{"strict"}, \code{"default"}, \code{"screenshot"} or \code{"cross_platform"}. The
+preset supplies \code{threshold} and \code{antialiasing}; values given explicitly
+for those arguments take precedence. \code{NULL} (the default) uses the
+argument defaults.}
+
+\item{diff_dir}{Where to write a diff image when the comparison fails.
+See the section "Diff images" in \code{\link[=compare_file_odiff]{compare_file_odiff()}}. \code{NULL} (the
+default, unless the \code{odiffr.snapshot_diff_dir} option is set) uses
+\verb{tests/testthat/_odiffr/}; \code{FALSE} disables diff images.}
 }
 \value{
 Invisibly returns \code{NULL}, like other testthat snapshot
@@ -72,7 +85,9 @@ On the first run, the image is saved as the snapshot
 compared with the snapshot using odiff and the expectation fails if they
 differ (beyond \code{threshold}, after \code{ignore_regions} and, optionally,
 antialiasing are taken into account). On failure, the new image is saved
-next to the snapshot as \verb{<name>.new.png}.
+next to the snapshot as \verb{<name>.new.png}, and a diff image highlighting
+the changed pixels is written to \verb{tests/testthat/_odiffr/} (outside
+\verb{_snaps/}, see \code{\link[=compare_file_odiff]{compare_file_odiff()}}); a message gives its path.
 
 Like \code{\link[testthat:expect_snapshot_file]{testthat::expect_snapshot_file()}}, on which it is built:
 \itemize{
@@ -107,7 +122,8 @@ devices and installed fonts. To reduce spurious failures:
 \itemize{
 \item Install the ragg package: plots are then rendered with
 \code{\link[ragg:agg_png]{ragg::agg_png()}}, which gives consistent output across platforms.
-\item Use a tolerant comparison (\code{threshold}, \code{antialiasing = TRUE},
+\item Use a tolerant comparison (\code{preset = "screenshot"} or
+\code{preset = "cross_platform"}, or \code{threshold}, \code{antialiasing = TRUE},
 \code{ignore_regions}).
 \item Store separate snapshots per platform with \code{variant}, e.g.
 \code{variant = Sys.info()[["sysname"]]}.
@@ -142,7 +158,7 @@ test_that("base graphics histogram is stable", {
 test_that("screenshot is stable on each OS", {
   expect_snapshot_image(
     "output/screenshot.png",
-    threshold = 0.2,
+    preset = "screenshot",
     ignore_regions = list(ignore_region(0, 0, 200, 40)),  # timestamp
     variant = Sys.info()[["sysname"]]
   )
