@@ -12,6 +12,7 @@ batch_report(
   relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
+  images = c("diff", "all"),
   ...
 )
 }
@@ -40,6 +41,12 @@ used instead. Ignored when \code{embed = TRUE}. Default: FALSE.}
 
 \item{show_all}{If TRUE, include a table of all comparisons. Default: FALSE.}
 
+\item{images}{Which images to show for each comparison: \code{"diff"}
+(default) shows only the diff image; \code{"all"} shows the baseline
+(\code{img1}), current (\code{img2}) and diff images side by side, each with a
+caption. Clicking a thumbnail shows the full-size image (a link to the
+file for linked reports, an in-page zoom for embedded ones).}
+
 \item{...}{Additional arguments passed to \code{\link[=summary.odiffr_batch]{summary.odiffr_batch()}}.}
 }
 \value{
@@ -58,6 +65,14 @@ shown for comparisons where a \code{diff_output} file was created. This requires
 using \code{diff_dir} in \code{\link[=compare_images_batch]{compare_images_batch()}} or \code{\link[=compare_image_dirs]{compare_image_dirs()}}.
 Comparisons without diff images will show "No diff" in the preview column.
 
+With \code{images = "all"}, baseline and current images are linked or embedded
+in the same way as diff images (\code{embed}, \code{relative_paths}). Embedded
+images get a MIME type based on their file extension (PNG, JPEG, WebP,
+BMP or TIFF; note that most browsers cannot display TIFF). Images that are
+not files on disk (for example \code{"<magick-image>"} inputs) or that no
+longer exist are shown as a placeholder. The report stays a single HTML
+file with inline CSS and no JavaScript.
+
 Failures without pixel statistics (layout differences, errors, or baseline
 images with no current counterpart) show "-" for the diff percentage and
 pixel count. If the results contain an \code{error} column, its message is
@@ -73,6 +88,9 @@ batch_report(results, output_file = "report.html")
 
 # Self-contained report with embedded images
 batch_report(results, output_file = "report.html", embed = TRUE)
+
+# Baseline, current and diff images side by side
+batch_report(results, output_file = "report.html", images = "all")
 
 # Get HTML as string
 html <- batch_report(results)

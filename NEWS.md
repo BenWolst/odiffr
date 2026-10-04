@@ -2,6 +2,25 @@
 
 ## New Features
 
+* `expect_snapshot_image()` is a testthat snapshot expectation that compares
+  images with odiff, so baselines are managed with `testthat::snapshot_review()`
+  and `testthat::snapshot_accept()`. `compare_file_odiff()` returns the
+  underlying compare function for use with `testthat::expect_snapshot_file()`.
+* `compare_images()`, the testthat expectations and `expect_snapshot_image()`
+  accept plots as inputs: ggplot objects, functions that draw a plot, and
+  recorded plots. Plots are rendered to PNG (with ragg when installed);
+  rendering is controlled with the new `plot_options()`.
+* `approve_changes()` accepts current images as the new baselines for the
+  directory/batch workflow, with `dry_run`, `backup_dir` and optional removal
+  of baselines whose current image no longer exists.
+* `plot()` method for `odiff_result` objects shows the baseline, current and
+  diff images side by side; `diff_image()` returns the diff image as a
+  magick image or raster.
+* `batch_report()` and `compare_dirs_report()` gain `images = "all"` to show
+  baseline, current and diff thumbnails side by side.
+* `batch_markdown()` writes a Markdown summary of batch results (appending to
+  the GitHub Actions job summary by default when run in GitHub Actions), and
+  `batch_junit()` writes JUnit XML for CI test reporting.
 * `odiff_run()` gains an `enable_asm` parameter to enable AVX-512 optimised
   assembly for ~12% faster comparisons on supported x86_64 CPUs. Requires
   odiff >= 4.1.1.

@@ -138,11 +138,7 @@ print.odiffr_batch_summary <- function(x, ...) {
     cat("\nWorst offenders:\n")
     for (i in seq_len(nrow(x$worst))) {
       row <- x$worst[i, ]
-      label <- if (!is.na(row$img2) && row$img2 != "<magick-image>") {
-        basename(row$img2)
-      } else {
-        paste0("pair ", row$pair_id)
-      }
+      label <- .row_label(row)
       if (is.na(row$diff_percentage)) {
         # layout-diff / error / missing rows have no pixel statistics
         detail <- .row_reason_text(row)
@@ -190,6 +186,35 @@ print.odiffr_batch_summary <- function(x, ...) {
     text <- paste0(text, ": ", err)
   }
   text
+}
+
+# Internal: TRUE for image paths that do not refer to a file on disk, i.e.
+# NA, "" and placeholder labels such as "<magick-image>" or "<plot>".
+.is_placeholder_path <- function(x) {
+  x <- as.character(x)
+  is.na(x) | !nzchar(x) | grepl("^<.*>$", x)
+}
+
+# Internal: short display label for a batch row: the basename of the current
+# image (img2), or "pair N" when img2 is not a file path (e.g. a magick image
+# or plot). With `use_img1 = TRUE`, the baseline (img1) is tried next.
+.row_label <- function(row, use_img1 = FALSE) {
+  img2 <- if ("img2" %in% names(row)) as.character(row$img2[[1]]) else NA_character_
+  if (!.is_placeholder_path(img2)) return(.path_basename(img2))
+  if (use_img1 && "img1" %in% names(row)) {
+    img1 <- as.character(row$img1[[1]])
+    if (!.is_placeholder_path(img1)) return(.path_basename(img1))
+  }
+  paste0("pair ", row$pair_id[[1]])
+}
+
+# Internal: like basename(), but works on the string itself so that UTF-8
+# file names survive in non-UTF-8 locales (basename() translates to the
+# native encoding and fails on unrepresentable characters).
+.path_basename <- function(x, windows = .Platform$OS.type == "windows") {
+  sep <- if (windows) "[/\\\\]" else "/"
+  x <- sub(paste0(sep, "+$"), "", x)
+  sub(paste0("^.*", sep), "", x)
 }
 
 # Internal: error message of a batch row, NA if absent (older objects have

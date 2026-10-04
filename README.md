@@ -14,10 +14,11 @@ Fast pixel-by-pixel image comparison for R, powered by [odiff](https://github.co
 
 - **Blazing fast**: ~6x faster than ImageMagick, optimized with SIMD (SSE2, AVX2, AVX512, NEON)
 - **Cross-platform**: Works on Windows, macOS (Intel & Apple Silicon), and Linux
-- **Flexible**: Accepts file paths or magick-image objects
+- **Flexible**: Accepts file paths, magick-image objects, or plots (ggplot2, base graphics)
 - **Configurable**: Threshold, antialiasing detection, region ignoring
 - **HTML reports**: Generate standalone QA reports with `batch_report()`
-- **testthat integration**: `expect_images_match()` and `expect_images_differ()` for visual regression testing
+- **CI outputs**: GitHub job summaries with `batch_markdown()` and JUnit XML with `batch_junit()`
+- **testthat integration**: `expect_images_match()`, `expect_images_differ()` and `expect_snapshot_image()` for visual regression testing
 
 ## Installation
 
@@ -150,6 +151,77 @@ batch_report(results, output_file = "qa-report.html", embed = TRUE)
 
 # Portable report with relative image paths
 batch_report(results, output_file = "output/report.html", relative_paths = TRUE)
+
+# Baseline, current and diff thumbnails side by side
+batch_report(results, output_file = "qa-report.html", images = "all")
+```
+
+### CI Outputs
+
+Besides the HTML report, batch results can be written in formats that CI
+systems display natively:
+
+```r
+# GitHub-flavoured Markdown; appended to the job summary page when
+# GITHUB_STEP_SUMMARY is set, otherwise returned as a string
+batch_markdown(results)
+
+# JUnit XML for test reporters (one test case per comparison)
+batch_junit(results, "odiffr-junit.xml")
+```
+
+A GitHub Actions step using all three:
+
+```yaml
+      - name: Compare images
+        run: |
+          library(odiffr)
+          results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
+          batch_markdown(results)                       # job summary
+          batch_junit(results, "odiffr-junit.xml")      # test report
+          batch_report(results, "diffs/report.html", images = "all",
+                       embed = TRUE)                    # HTML report
+          if (any(!results$match)) stop("Visual regression detected!")
+        shell: Rscript {0}
+```
+
+### Approving Changes
+
+When differences are intentional, accept the current images as the new
+baselines with `approve_changes()`:
+
+```r
+results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
+
+# Review the differences first
+batch_report(results, "diffs/report.html")
+
+# Preview what would change, then copy current images over the baselines
+approve_changes(results, dry_run = TRUE)
+approve_changes(results)
+
+# Approve selected images only, keeping a backup of the old baselines
+approve_changes(results, which = "home.png", backup_dir = "baseline-backup/")
+
+# Also delete baselines whose screenshot was intentionally removed
+approve_changes(results, reasons = "missing", remove_missing = TRUE)
+```
+
+Rows with `reason = "error"` are never approved. Running
+`compare_image_dirs()` again afterwards should report only matches.
+
+### Viewing a Diff
+
+```r
+# Baseline, current and diff image side by side (base graphics)
+result <- odiff_run("baseline.png", "current.png", diff_output = "diff.png")
+plot(result)
+plot(result, which = "diff")
+
+# Get the diff image of a compare_images() result or a batch row
+img <- diff_image(compare_images("baseline.png", "current.png",
+                                 diff_output = TRUE))  # magick-image
+plot(diff_image(failed_pairs(results)[1, ], as = "raster"))  # no magick
 ```
 
 ### CI Integration
@@ -230,6 +302,43 @@ test_that("button changes on hover", {
 ```
 
 On failure, diff images are automatically saved to `tests/testthat/_odiffr/`.
+
+### Testing Plots
+
+`compare_images()` and the expectations also accept plots: ggplot objects,
+functions that draw a base/grid plot, and recorded plots. They are rendered
+to a temporary PNG (with ragg if installed, otherwise `grDevices::png()`)
+using `plot_options()`.
+
+```r
+library(ggplot2)
+
+test_that("scatter plot matches baseline", {
+  p <- ggplot(mtcars, aes(wt, mpg)) + geom_point()
+  expect_images_match(p, test_path("baselines/scatter.png"),
+                      plot_options = plot_options(width = 6, height = 4))
+})
+```
+
+Or let testthat manage the baselines with `expect_snapshot_image()`, which
+stores snapshots in `tests/testthat/_snaps/` and compares them with odiff
+(so small, sub-threshold differences don't fail):
+
+```r
+test_that("plots are stable", {
+  p <- ggplot(mtcars, aes(wt, mpg)) + geom_point()
+  expect_snapshot_image(p)  # _snaps/<file>/p.png
+  expect_snapshot_image(function() hist(mtcars$mpg), name = "mpg-hist",
+                        antialiasing = TRUE)
+})
+
+# After an intended change, review and accept the new images
+testthat::snapshot_review()
+testthat::snapshot_accept()
+```
+
+Like other file snapshots, these are skipped on CRAN. Use
+`variant = Sys.info()[["sysname"]]` if rendering differs across platforms.
 
 ## Binary Management
 

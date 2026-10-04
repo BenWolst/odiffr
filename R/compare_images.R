@@ -2,10 +2,16 @@
 #'
 #' High-level function for comparing images with convenient output.
 #' Returns a tibble if the tibble package is available, otherwise a data.frame.
-#' Accepts file paths or magick-image objects.
+#' Accepts file paths, magick-image objects, and plots (ggplot objects,
+#' functions that draw a plot, or recorded plots), which are rendered to a
+#' temporary PNG file before comparison.
 #'
-#' @param img1 Path to the first image, or a magick-image object.
-#' @param img2 Path to the second image, or a magick-image object.
+#' @param img1 Path to the first image, a magick-image object, or a plot:
+#'   a ggplot object, a function of no arguments that draws a plot (base or
+#'   grid graphics) when called, or a recorded plot
+#'   ([grDevices::recordPlot()]).
+#' @param img2 Path to the second image, a magick-image object, or a plot
+#'   (see `img1`).
 #' @param diff_output Path for the diff output image (PNG only). Use `NULL`
 #'   for no diff output, or `TRUE` to auto-generate a temporary file path.
 #' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
@@ -17,6 +23,10 @@
 #' @param ignore_regions List of regions to ignore during comparison.
 #'   Use [ignore_region()] to create regions, or pass a data.frame with
 #'   columns `x1`, `y1`, `x2`, `y2`.
+#' @param plot_options Options for rendering plot inputs, created with
+#'   [plot_options()]. `NULL` (the default) uses `plot_options()`: 7 x 5
+#'   inches at 96 dpi on a white background. Ignored for file and
+#'   magick-image inputs.
 #' @param ... Additional arguments passed to [odiff_run()].
 #'
 #' @return A tibble (if available) or data.frame with columns:
@@ -26,8 +36,9 @@
 #'     \item{diff_count}{Integer; number of different pixels.}
 #'     \item{diff_percentage}{Numeric; percentage of different pixels.}
 #'     \item{diff_output}{Character; path to diff image, or `NA`.}
-#'     \item{img1}{Character; path to first image.}
-#'     \item{img2}{Character; path to second image.}
+#'     \item{img1}{Character; path to first image (`"<magick-image>"` or
+#'       `"<plot>"` for magick-image and plot inputs).}
+#'     \item{img2}{Character; path to second image (labelled as `img1`).}
 #'     \item{error}{Character; the error message reported by odiff when
 #'       `reason` is `"error"` (e.g. an image could not be loaded or has an
 #'       unsupported format), otherwise `NA`. This is always the last column.}
@@ -54,6 +65,16 @@
 #' img2 <- image_read("current.png")
 #' result <- compare_images(img1, img2)
 #'
+#' # Compare a ggplot against a baseline PNG (rendered with ragg if
+#' # installed, otherwise grDevices::png())
+#' library(ggplot2)
+#' p <- ggplot(mtcars, aes(wt, mpg)) + geom_point()
+#' result <- compare_images("baseline_plot.png", p,
+#'                          plot_options = plot_options(width = 6, height = 4))
+#'
+#' # Base graphics: pass a function that draws the plot
+#' result <- compare_images("baseline_hist.png", function() hist(mtcars$mpg))
+#'
 #' # Ignore specific regions
 #' result <- compare_images("baseline.png", "current.png",
 #'                          ignore_regions = list(
@@ -67,16 +88,15 @@ compare_images <- function(img1, img2,
                            antialiasing = FALSE,
                            fail_on_layout = FALSE,
                            ignore_regions = NULL,
+                           plot_options = NULL,
                            ...) {
-  # Resolve image inputs (handles both paths and magick objects)
-  img1_resolved <- .resolve_image_input(img1, "img1")
-  img2_resolved <- .resolve_image_input(img2, "img2")
-
-  # Ensure cleanup of temp files on exit
-  on.exit(
-    .cleanup_temp_files(img1_resolved, img2_resolved),
-    add = TRUE
-  )
+  # Resolve image inputs (paths, magick objects and plots)
+  img1_resolved <- .resolve_image_input(img1, "img1",
+                                        plot_options = plot_options)
+  on.exit(.cleanup_temp_files(img1_resolved), add = TRUE)
+  img2_resolved <- .resolve_image_input(img2, "img2",
+                                        plot_options = plot_options)
+  on.exit(.cleanup_temp_files(img2_resolved), add = TRUE)
 
   # Handle diff_output = TRUE (auto-generate temp path)
   if (isTRUE(diff_output)) {
@@ -102,8 +122,8 @@ compare_images <- function(img1, img2,
     diff_count = result$diff_count,
     diff_percentage = result$diff_percentage,
     diff_output = if (is.null(result$diff_output)) NA_character_ else result$diff_output,
-    img1 = if (img1_resolved$temp) "<magick-image>" else result$img1,
-    img2 = if (img2_resolved$temp) "<magick-image>" else result$img2,
+    img1 = .input_label(img1_resolved, result$img1),
+    img2 = .input_label(img2_resolved, result$img2),
     error = .odiff_error_message(result),
     stringsAsFactors = FALSE
   )
@@ -247,6 +267,8 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
     x
   } else if (.is_magick_image(x)) {
     "<magick-image>"
+  } else if (.is_plot_input(x)) {
+    "<plot>"
   } else {
     NA_character_
   }
@@ -364,6 +386,8 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
         # Include index to prevent filename collisions (especially in parallel)
         base_name <- if (is.character(pair$img2)) {
           tools::file_path_sans_ext(basename(pair$img2))
+        } else if (.is_plot_input(pair$img2)) {
+          "plot"
         } else {
           "magick"
         }
@@ -617,6 +641,9 @@ compare_image_dirs <- function(baseline_dir,
 #' @param n_worst Number of worst offenders to display in the report.
 #' @param show_all Logical; if `TRUE`, show all comparisons in the report,
 #'   not just failures.
+#' @param images Which images to show in the report: `"diff"` (default) for
+#'   the diff image only, or `"all"` for baseline, current and diff images
+#'   side by side. See [batch_report()].
 #' @param ... Additional arguments passed to [compare_image_dirs()] (e.g.
 #'   `threshold`, `antialiasing`, `pattern`, `recursive`).
 #'
@@ -649,7 +676,9 @@ compare_dirs_report <- function(baseline_dir,
                                 relative_paths = FALSE,
                                 n_worst = 10,
                                 show_all = FALSE,
+                                images = c("diff", "all"),
                                 ...) {
+  images <- match.arg(images)
   results <- compare_image_dirs(
     baseline_dir,
     current_dir,
@@ -671,7 +700,8 @@ compare_dirs_report <- function(baseline_dir,
     embed = embed,
     relative_paths = relative_paths,
     n_worst = n_worst,
-    show_all = show_all
+    show_all = show_all,
+    images = images
   )
   invisible(results)
 }
