@@ -414,10 +414,11 @@ make_npm_layout <- function(root, hoisted = FALSE, binary = TRUE) {
   pkg <- file.path(root, "lib", "node_modules", "odiff-bin")
   shim <- write_node_shim(file.path(pkg, "bin", "odiff"))
   key <- odiffr:::.npm_platform_key()
+  exe <- if (.Platform$OS.type == "windows") "odiff.exe" else "odiff"
   bin_path <- if (hoisted) {
-    file.path(root, "lib", "node_modules", "@odiff", key, "odiff")
+    file.path(root, "lib", "node_modules", "@odiff", key, exe)
   } else {
-    file.path(pkg, "node_modules", "@odiff", key, "odiff")
+    file.path(pkg, "node_modules", "@odiff", key, exe)
   }
   if (binary) write_fake_native(bin_path)
   list(shim = shim, binary = bin_path)

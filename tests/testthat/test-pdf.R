@@ -341,7 +341,8 @@ test_that("a reused diff_dir does not keep renders of pages now missing", {
     "Page counts differ"
   )
   expect_equal(res$reason[3], "missing")
-  expect_equal(res$img2[3], stale)
+  expect_equal(normalizePath(res$img2[3], mustWork = FALSE),
+               normalizePath(stale, mustWork = FALSE))
   expect_false(file.exists(res$img2[3]))
   expect_true(file.exists(res$img1[3]))
 

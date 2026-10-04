@@ -275,9 +275,12 @@
     dir.create(parent_dir, recursive = TRUE)
   }
 
-  # Absolute path whether or not the file exists yet (normalizePath() leaves
-  # nonexistent paths relative on Unix)
-  file.path(normalizePath(parent_dir, mustWork = FALSE), basename(path))
+  # Absolute path in the platform's native form whether or not the file
+  # exists yet (normalizePath() leaves nonexistent paths relative on Unix)
+  normalizePath(
+    file.path(normalizePath(parent_dir, mustWork = FALSE), basename(path)),
+    mustWork = FALSE
+  )
 }
 
 # Validate odiff_run() options
