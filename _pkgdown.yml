@@ -20,14 +20,25 @@ reference:
       - passed_pairs
       - odiff_run
       - ignore_region
+      - plot_options
+
+  - title: Reviewing and Approving Changes
+    contents:
+      - approve_changes
+      - plot.odiff_result
+      - diff_image
 
   - title: Reporting
     contents:
       - batch_report
+      - batch_markdown
+      - batch_junit
 
   - title: testthat Expectations
     contents:
       - expect_images_match
+      - expect_snapshot_image
+      - compare_file_odiff
 
   - title: Binary Management
     contents:

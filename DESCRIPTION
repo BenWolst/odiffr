@@ -18,16 +18,21 @@ RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1.0)
 Imports:
+    graphics,
+    grDevices,
     tools
 Suggests:
     base64enc,
+    ggplot2,
     jsonlite,
     knitr,
     magick,
     png,
+    ragg,
     rmarkdown,
     testthat (>= 3.1.0),
     tibble,
-    withr
+    withr,
+    xml2
 Config/testthat/edition: 3
 VignetteBuilder: knitr
