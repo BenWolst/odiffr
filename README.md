@@ -22,16 +22,7 @@ Fast pixel-by-pixel image comparison for R, powered by [odiff](https://github.co
 
 ## Installation
 
-Odiffr requires the odiff binary (>= 4.1.1):
-
-```bash
-# npm (cross-platform, recommended)
-npm install -g odiff-bin
-
-# Or download binaries from https://github.com/dmtrKovalenko/odiff/releases
-```
-
-Then install odiffr:
+Install odiffr:
 
 ```r
 install.packages("odiffr")
@@ -41,8 +32,24 @@ install.packages("odiffr")
 pak::pak("BenWolst/odiffr")
 ```
 
-If you cannot install odiff system-wide, `odiffr::odiffr_update()` downloads
-it to your user cache.
+Odiffr requires the odiff binary (>= 4.1.1). The easiest way to get it is
+from R, which downloads the binary for your platform to your user cache (no
+Node.js needed):
+
+```r
+odiffr::install_odiff()
+```
+
+In interactive sessions, odiffr also offers to do this the first time odiff is
+needed; it never downloads anything without asking. Alternatively, install
+odiff system-wide:
+
+```bash
+# npm (cross-platform)
+npm install -g odiff-bin
+
+# Or download binaries from https://github.com/dmtrKovalenko/odiff/releases
+```
 
 ## Quick Start
 
@@ -181,6 +188,16 @@ Requires the pdftools package. See
 
 ### CI
 
+`use_odiffr_ci()` adds a ready-to-use GitHub Actions workflow to your package
+(`.github/workflows/odiffr.yaml`) that installs odiff with `install_odiff()`,
+runs your tests, summarises changed image snapshots with `snapshot_report()`
+on the job summary page and uploads the new snapshots and diff images when
+tests fail:
+
+```r
+odiffr::use_odiffr_ci()
+```
+
 Batch results can be written in formats CI systems display natively:
 
 ```yaml
@@ -207,14 +224,15 @@ Batch results can be written in formats CI systems display natively:
 ```r
 odiff_available()   # is odiff installed?
 odiff_info()        # path, version and source
-odiffr_update()     # download odiff to the user cache
+install_odiff()     # download odiff to the user cache
+odiffr_update()     # same, lower-level (e.g. to update between releases)
 
 # Use a specific binary
 options(odiffr.path = "/path/to/odiff")
 ```
 
 odiff is found via `options(odiffr.path)`, then the system PATH, then the
-binary downloaded by `odiffr_update()`. For npm installs (odiff >= 4.4), odiffr
+binary downloaded by `install_odiff()`. For npm installs (odiff >= 4.4), odiffr
 calls the native binary directly rather than the Node.js launcher on the PATH,
 which makes each comparison around 5x faster; set
 `options(odiffr.resolve_npm = FALSE)` to disable this.

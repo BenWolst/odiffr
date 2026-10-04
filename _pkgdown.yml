@@ -46,6 +46,7 @@ reference:
       - batch_markdown
       - batch_junit
       - snapshot_report
+      - use_odiffr_ci
       - audit_record
 
   - title: testthat Expectations
@@ -56,6 +57,7 @@ reference:
 
   - title: Binary Management
     contents:
+      - install_odiff
       - find_odiff
       - odiff_available
       - odiff_version

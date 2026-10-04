@@ -35,11 +35,84 @@ odiffr_clear_cache <- function() {
   }
 }
 
+#' Install odiff
+#'
+#' Downloads the odiff binary for your platform from the odiff GitHub
+#' releases to the odiffr user cache ([odiffr_cache_path()]), where
+#' [find_odiff()] finds it. This is the easiest way to install odiff: it needs
+#' neither Node.js nor npm, nor administrator rights.
+#'
+#' @inheritParams odiffr_update
+#'
+#' @details
+#' `install_odiff()` is a user-facing wrapper around [odiffr_update()]: it
+#' downloads the binary (see [odiffr_update()] for details, e.g. on GitHub
+#' API rate limits), clears odiffr's cached binary lookups so that
+#' [find_odiff()] and [odiff_version()] use the new binary straight away, and
+#' reports the installed version and path.
+#'
+#' The cached binary is used only when no binary is set via
+#' `options(odiffr.path)` and no odiff is found on the PATH; a message says
+#' so when another binary takes precedence.
+#'
+#' odiffr never downloads anything on its own: the binary is only downloaded
+#' when `install_odiff()` (or [odiffr_update()]) is called, or when you
+#' accept the offer [find_odiff()] makes in interactive sessions.
+#'
+#' @return The path to the installed binary (invisibly).
+#' @seealso [odiffr_update()], [odiffr_clear_cache()], [odiff_info()]
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' install_odiff()
+#'
+#' # A specific version
+#' install_odiff(version = "4.5.0", force = TRUE)
+#' }
+install_odiff <- function(version = "latest", force = FALSE) {
+  path <- odiffr_update(version = version, force = force)
+  path <- normalizePath(path, mustWork = TRUE)
+  .reset_binary_caches()
+
+  installed <- .installed_version(path)
+  message(
+    "odiff", if (!is.na(installed)) paste0(" ", installed),
+    " is installed at: ", path
+  )
+
+  active <- tryCatch(.find_odiff_details(offer = FALSE)$path,
+                     error = function(e) NA_character_)
+  if (!is.na(active) && !identical(active, path)) {
+    message(
+      "Note: find_odiff() uses ", active, ", which takes precedence over ",
+      "the downloaded binary (via options(odiffr.path) or the PATH)."
+    )
+  }
+  invisible(path)
+}
+
+# Internal: version recorded next to a binary downloaded by odiffr_update()
+.installed_version <- function(path) {
+  version_file <- file.path(dirname(path), "CACHED_VERSION")
+  version <- if (file.exists(version_file)) {
+    tryCatch(readLines(version_file, n = 1L, warn = FALSE),
+             error = function(e) character())
+  } else {
+    character()
+  }
+  if (length(version) != 1 || !nzchar(trimws(version))) {
+    return(NA_character_)
+  }
+  trimws(version)
+}
+
 #' Download Latest odiff Binary
 #'
 #' Downloads the odiff binary from GitHub releases to the user's cache
 #' directory. The downloaded binary will be used by `find_odiff()` if no
 #' system-wide installation or user-specified path is found.
+#' [install_odiff()] is the recommended, user-facing way to do this.
 #'
 #' @param version Character string specifying the version to download.
 #'   Use `"latest"` (default) to download the most recent release, or

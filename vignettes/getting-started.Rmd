@@ -23,21 +23,6 @@ a blazing-fast pixel-by-pixel image comparison tool. It's designed for:
 - Quality assurance in validated pharmaceutical environments
 - Automated image analysis workflows
 
-## System Requirements
-
-Odiffr requires the Odiff binary to be installed on your system:
-
-```bash
-# npm (cross-platform, recommended)
-npm install -g odiff-bin
-
-# Or download binaries from GitHub releases
-# https://github.com/dmtrKovalenko/odiff/releases
-```
-
-If you cannot install Odiff system-wide, use `odiffr_update()` after installing
-the package to download a binary to your user cache.
-
 ## Installation
 
 ```{r eval=FALSE}
@@ -46,6 +31,32 @@ install.packages("odiffr")
 
 # Development version
 pak::pak("BenWolst/odiffr")
+```
+
+## System Requirements
+
+Odiffr requires the Odiff binary (>= 4.1.1). The easiest way to install it is
+from R: `install_odiff()` downloads the binary for your platform from the
+Odiff GitHub releases to your user cache, with no need for Node.js or
+administrator rights:
+
+```{r eval=FALSE}
+odiffr::install_odiff()
+```
+
+In interactive sessions, odiffr also offers to do this the first time Odiff is
+needed (for example, by `compare_images()`). It never prompts or downloads
+anything in non-interactive sessions, tests, R Markdown documents or
+`R CMD check`; set `options(odiffr.ask_install = FALSE)` to turn the offer off.
+
+Alternatively, install Odiff system-wide:
+
+```bash
+# npm (cross-platform)
+npm install -g odiff-bin
+
+# Or download binaries from GitHub releases
+# https://github.com/dmtrKovalenko/odiff/releases
 ```
 
 ## Basic Usage
@@ -343,7 +354,17 @@ plot(diff_image(failed_pairs(results)[1, ], as = "raster"))  # no magick
 
 ### CI Integration
 
-The `compare_dirs_report()` one-liner is ideal for CI pipelines:
+For a package with image snapshot tests, `use_odiffr_ci()` writes a
+ready-to-use GitHub Actions workflow to `.github/workflows/odiffr.yaml`. It
+installs Odiff with `install_odiff()`, runs the testthat tests, adds a
+`snapshot_report()` summary of changed snapshots to the job summary and, if
+tests fail, uploads the new snapshots and diff images as an artifact:
+
+```{r eval=FALSE}
+use_odiffr_ci()
+```
+
+For comparisons outside testthat, the `compare_dirs_report()` one-liner is ideal for CI pipelines:
 
 ```{r eval=FALSE}
 # In your CI script
@@ -466,17 +487,19 @@ result$duration
 
 ## Binary Management
 
-### Update Binary
+### Install or Update the Binary
 
 Download the latest Odiff binary to your user cache:
 
 ```{r eval=FALSE}
 # Latest version
-odiffr_update()
+install_odiff()
 
-# Specific version
-odiffr_update(version = "v4.1.2")
+# Specific version, replacing the cached binary
+install_odiff(version = "v4.1.2", force = TRUE)
 ```
+
+`odiffr_update()` is the lower-level function behind `install_odiff()`.
 
 ### Custom Binary Path
 

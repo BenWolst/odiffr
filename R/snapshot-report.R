@@ -139,7 +139,7 @@ snapshot_report <- function(path = "tests/testthat/_snaps",
   pairs <- .snapshot_pairs(path)
 
   if (nrow(pairs) > 0 && !odiff_available()) {
-    stop("odiff binary not available. Install it with odiffr_update().",
+    stop("odiff binary not available. Install it with install_odiff().",
          call. = FALSE)
   }
 

@@ -47,6 +47,7 @@ screenshots.}
 \item{\code{\link[=batch_report]{batch_report()}}, \code{\link[=batch_markdown]{batch_markdown()}}, \code{\link[=batch_junit]{batch_junit()}}}{HTML,
 Markdown and JUnit reports of batch results.}
 \item{\code{\link[=snapshot_report]{snapshot_report()}}}{Report of changed image snapshots.}
+\item{\code{\link[=use_odiffr_ci]{use_odiffr_ci()}}}{Add a GitHub Actions workflow for visual tests.}
 \item{\code{\link[=approve_changes]{approve_changes()}}}{Accept current images as new baselines.}
 \item{\code{\link[=diff_image]{diff_image()}}, \code{\link[=plot.odiff_result]{plot.odiff_result()}}}{View diff images.}
 \item{\code{\link[=audit_record]{audit_record()}}}{Machine-readable record of comparisons.}
@@ -57,6 +58,8 @@ Markdown and JUnit reports of batch results.}
 
 
 \describe{
+\item{\code{\link[=install_odiff]{install_odiff()}}}{Download Odiff to the user cache (no Node.js
+needed).}
 \item{\code{\link[=find_odiff]{find_odiff()}}}{Locate the Odiff binary using priority search.}
 \item{\code{\link[=odiff_available]{odiff_available()}}}{Check if Odiff is available.}
 \item{\code{\link[=odiff_version]{odiff_version()}}}{Get the Odiff version string.}
@@ -75,7 +78,7 @@ The package searches for the Odiff binary in this order:
 \enumerate{
 \item User-specified path via \code{options(odiffr.path = "/path/to/odiff")}
 \item System PATH (\code{Sys.which("odiff")})
-\item Cached binary from \code{odiffr_update()}
+\item Cached binary from \code{\link[=install_odiff]{install_odiff()}} or \code{odiffr_update()}
 }
 }
 

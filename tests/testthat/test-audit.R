@@ -241,7 +241,7 @@ test_that("audit_record() validates its inputs", {
 
 test_that("audit_record() records NA when odiff is unavailable", {
   testthat::local_mocked_bindings(
-    find_odiff = function() stop("odiff binary not found", call. = FALSE),
+    .find_odiff_details = function(...) stop("odiff binary not found", call. = FALSE),
     odiff_version = function() NA_character_,
     .package = "odiffr"
   )
