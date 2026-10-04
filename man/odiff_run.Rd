@@ -103,6 +103,12 @@ message reported by odiff (or by odiffr, e.g. on timeout).}
 \item{duration}{Numeric; time elapsed in seconds.}
 \item{diff_cols}{Integer vector of column numbers with differences, or
 \code{NULL}. Only present when \code{diff_cols = TRUE}.}
+\item{params}{Named list of the effective comparison parameters
+(after version guards): \code{threshold}, \code{antialiasing},
+\code{fail_on_layout}, \code{ignore_regions} (formatted as
+\code{"x1:y1-x2:y2,..."}, or \code{NA}), \code{diff_mask}, \code{diff_overlay} (\code{NA} if
+unset), \code{diff_color} (\code{NA} if unset), \code{reduce_ram} and \code{enable_asm}.
+Used by \code{\link[=audit_record]{audit_record()}}.}
 }
 }
 \description{

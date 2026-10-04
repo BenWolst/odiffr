@@ -68,6 +68,12 @@
 #'     \item{duration}{Numeric; time elapsed in seconds.}
 #'     \item{diff_cols}{Integer vector of column numbers with differences, or
 #'       `NULL`. Only present when `diff_cols = TRUE`.}
+#'     \item{params}{Named list of the effective comparison parameters
+#'       (after version guards): `threshold`, `antialiasing`,
+#'       `fail_on_layout`, `ignore_regions` (formatted as
+#'       `"x1:y1-x2:y2,..."`, or `NA`), `diff_mask`, `diff_overlay` (`NA` if
+#'       unset), `diff_color` (`NA` if unset), `reduce_ram` and `enable_asm`.
+#'       Used by [audit_record()].}
 #'   }
 #'
 #' @details
@@ -196,6 +202,24 @@ odiff_run <- function(img1, img2,
   if (!is.null(diff_output) && !file.exists(diff_output)) {
     parsed$diff_output <- NULL
   }
+
+  # Effective comparison parameters (after version guards), for audit_record()
+  parsed$params <- list(
+    threshold = threshold,
+    antialiasing = isTRUE(antialiasing),
+    fail_on_layout = isTRUE(fail_on_layout),
+    ignore_regions = if (is.null(ignore_regions) ||
+                         length(ignore_regions) == 0) {
+      NA_character_
+    } else {
+      .format_regions(ignore_regions)
+    },
+    diff_mask = isTRUE(diff_mask),
+    diff_overlay = if (is.null(diff_overlay)) NA else diff_overlay,
+    diff_color = if (is.null(diff_color)) NA_character_ else diff_color,
+    reduce_ram = isTRUE(reduce_ram),
+    enable_asm = isTRUE(enable_asm)
+  )
 
   structure(parsed, class = c("odiff_result", "list"))
 }
