@@ -576,3 +576,157 @@ test_that("batch_report writes UTF-8 and creates the parent directory", {
   content <- readLines(out, encoding = "UTF-8", warn = FALSE)
   expect_true(any(grepl(title, content, fixed = TRUE)))
 })
+
+
+# Side-by-side images -----------------------------------------------------------
+
+side_by_side_batch <- function(root, names = c("a.png", "b.png")) {
+  f <- make_batch_files(root, names)
+  make_batch(
+    match = c(FALSE, TRUE)[seq_along(names)],
+    reason = c("pixel-diff", "match")[seq_along(names)],
+    diff_count = c(126L, 0L)[seq_along(names)],
+    diff_percentage = c(1.26, 0)[seq_along(names)],
+    diff_output = c(f$diff[1], NA)[seq_along(names)],
+    img1 = f$img1, img2 = f$img2
+  )
+}
+
+test_that("batch_report images = 'diff' is the default and unchanged", {
+  root <- withr::local_tempdir()
+  batch <- side_by_side_batch(root)
+  html_default <- batch_report(batch, show_all = TRUE)
+  html_diff <- batch_report(batch, show_all = TRUE, images = "diff")
+  strip_time <- function(x) sub("Generated: [^<]*", "", x)
+  expect_identical(strip_time(html_default), strip_time(html_diff))
+  expect_false(grepl("img-set\"", html_default, fixed = TRUE))
+  expect_true(grepl("<th>Preview</th>", html_default, fixed = TRUE))
+  expect_error(batch_report(batch, images = "nope"))
+})
+
+test_that("batch_report images = 'all' links baseline, current and diff", {
+  root <- withr::local_tempdir()
+  batch <- side_by_side_batch(root)
+  out <- file.path(root, "report.html")
+  batch_report(batch, output_file = out, show_all = TRUE, images = "all",
+               relative_paths = TRUE)
+  html <- paste(readLines(out, warn = FALSE), collapse = "\n")
+
+  expect_true(grepl("<th>Images</th>", html, fixed = TRUE))
+  for (cap in c("Baseline", "Current", "Diff")) {
+    expect_true(grepl(sprintf("<figcaption>%s</figcaption>", cap), html, fixed = TRUE))
+  }
+  # Clickable thumbnails pointing at the same relative URL
+  expect_true(grepl('<a href="baseline/a.png" target="_blank"><img class="thumb" src="baseline/a.png"',
+                    html, fixed = TRUE))
+  expect_true(grepl('src="current/a.png"', html, fixed = TRUE))
+  expect_true(grepl('src="diffs/a.png"', html, fixed = TRUE))
+  # Passing row (show_all) has no diff image
+  expect_true(grepl("No diff", html, fixed = TRUE))
+  expect_false(grepl("<script", html, fixed = TRUE))
+  expect_false(grepl("<link", html, fixed = TRUE))
+
+  # Absolute file:// URIs without relative_paths
+  html_abs <- batch_report(batch, images = "all")
+  expect_true(grepl('href="file:///', html_abs, fixed = TRUE))
+})
+
+test_that("batch_report images = 'all' embeds images with the right MIME type", {
+  root <- withr::local_tempdir()
+  f <- make_batch_files(root, c("a.jpg", "b.webp"))
+  batch <- make_batch(
+    match = c(FALSE, FALSE), reason = c("pixel-diff", "pixel-diff"),
+    diff_count = c(10L, 5L), diff_percentage = c(1, 0.5),
+    diff_output = f$diff, img1 = f$img1, img2 = f$img2
+  )
+  html <- batch_report(batch, embed = TRUE, images = "all")
+  expect_true(grepl('src="data:image/jpeg;base64,', html, fixed = TRUE))
+  expect_true(grepl('src="data:image/webp;base64,', html, fixed = TRUE))
+  expect_true(grepl('src="data:image/png;base64,', html, fixed = TRUE))
+  expect_false(grepl("file://", html, fixed = TRUE))
+  expect_true(grepl('class="thumb zoom" tabindex="0"', html, fixed = TRUE))
+  # No duplicated data URIs in links
+  expect_false(grepl('href="data:', html, fixed = TRUE))
+})
+
+test_that(".image_mime detects types from extensions", {
+  expect_equal(
+    odiffr:::.image_mime(c("a.png", "b.JPG", "c.jpeg", "d.webp", "e.bmp",
+                           "f.tif", "g.TIFF", "noext", "x.gif")),
+    c("image/png", "image/jpeg", "image/jpeg", "image/webp", "image/bmp",
+      "image/tiff", "image/tiff", "image/png", "image/png")
+  )
+})
+
+test_that("batch_report images = 'all' shows placeholders for non-files", {
+  root <- withr::local_tempdir()
+  f <- make_batch_files(root, "a.png")
+  batch <- make_batch(
+    match = c(FALSE, FALSE, FALSE),
+    reason = c("pixel-diff", "missing", "error"),
+    diff_count = c(3L, NA, NA), diff_percentage = c(0.3, NA, NA),
+    diff_output = c(f$diff, NA, NA),
+    img1 = c("<magick-image>", f$img1, file.path(root, "gone.png")),
+    img2 = c("<plot>", file.path(root, "current", "nope.png"), "<magick-image>"),
+    error = c(NA, "File not found in current_dir", "boom")
+  )
+  html <- batch_report(batch, images = "all", embed = TRUE)
+  expect_true(grepl("In memory (no file)", html, fixed = TRUE))
+  expect_true(grepl("Missing</span><figcaption>Current", html, fixed = TRUE))
+  expect_true(grepl("Not available</span><figcaption>Baseline", html, fixed = TRUE))
+  # "<plot>" labels fall back to the pair id, never shown as a file name
+  expect_true(grepl("<td>pair 1</td>", html, fixed = TRUE))
+  expect_false(grepl("&lt;plot&gt;</td>", html, fixed = TRUE))
+})
+
+test_that("summary print and report use pair labels for '<plot>' inputs", {
+  batch <- make_batch(match = FALSE, reason = "pixel-diff",
+                      diff_count = 5L, diff_percentage = 0.5,
+                      img1 = "<plot>", img2 = "<plot>")
+  out <- capture.output(print(summary(batch)))
+  expect_true(any(grepl("1. pair 1 (0.50%", out, fixed = TRUE)))
+  expect_false(any(grepl("<plot>", out, fixed = TRUE)))
+})
+
+test_that(".path_basename matches basename() semantics", {
+  b <- odiffr:::.path_basename
+  expect_equal(b(c("a/b/c.png", "c.png", "dir/", "caf\u00e9/\u00fc.png"), windows = FALSE),
+               c("c.png", "c.png", "dir", "\u00fc.png"))
+  expect_equal(b("C:\\x\\y.png", windows = TRUE), "y.png")
+  expect_equal(b("x\\y.png", windows = FALSE), "x\\y.png")
+})
+
+test_that(".format_thumbnail escapes special characters in paths", {
+  root <- withr::local_tempdir()
+  d <- file.path(root, "a&b \"x\"")
+  dir.create(d)
+  p <- file.path(d, "<i>.png")
+  writeBin(as.raw(1:4), p)
+  html <- odiffr:::.format_thumbnail(p, "Baseline", embed = FALSE)
+  expect_false(grepl("<i>", html, fixed = TRUE))
+  expect_true(grepl("a%26b%20%22x%22/%3Ci%3E.png", html, fixed = TRUE))
+})
+
+test_that("batch_report images = 'all' works end-to-end with odiff", {
+  skip_if_no_odiff()
+  root <- withr::local_tempdir()
+  dir.create(file.path(root, "baseline"))
+  dir.create(file.path(root, "current"))
+  red <- create_test_image(20, 20, "red")
+  blue <- create_test_image(20, 20, "blue")
+  file.copy(red, file.path(root, "baseline", "same.png"))
+  file.copy(red, file.path(root, "current", "same.png"))
+  file.copy(red, file.path(root, "baseline", "changed.png"))
+  file.copy(blue, file.path(root, "current", "changed.png"))
+  unlink(c(red, blue))
+
+  res <- compare_image_dirs(file.path(root, "baseline"), file.path(root, "current"),
+                            diff_dir = file.path(root, "diffs"))
+  out <- file.path(root, "report.html")
+  batch_report(res, output_file = out, images = "all", relative_paths = TRUE,
+               show_all = TRUE)
+  html <- paste(readLines(out, warn = FALSE), collapse = "\n")
+  expect_true(grepl('src="baseline/changed.png"', html, fixed = TRUE))
+  expect_true(grepl('src="current/changed.png"', html, fixed = TRUE))
+  expect_true(grepl('src="diffs/', html, fixed = TRUE))
+})

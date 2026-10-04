@@ -21,6 +21,11 @@
 #'   used instead. Ignored when `embed = TRUE`. Default: FALSE.
 #' @param n_worst Number of worst offenders to display. Default: 10.
 #' @param show_all If TRUE, include a table of all comparisons. Default: FALSE.
+#' @param images Which images to show for each comparison: `"diff"`
+#'   (default) shows only the diff image; `"all"` shows the baseline
+#'   (`img1`), current (`img2`) and diff images side by side, each with a
+#'   caption. Clicking a thumbnail shows the full-size image (a link to the
+#'   file for linked reports, an in-page zoom for embedded ones).
 #' @param ... Additional arguments passed to [summary.odiffr_batch()].
 #'
 #' @return If `output_file` is NULL, returns the HTML as a character string
@@ -32,6 +37,14 @@
 #' shown for comparisons where a `diff_output` file was created. This requires
 #' using `diff_dir` in [compare_images_batch()] or [compare_image_dirs()].
 #' Comparisons without diff images will show "No diff" in the preview column.
+#'
+#' With `images = "all"`, baseline and current images are linked or embedded
+#' in the same way as diff images (`embed`, `relative_paths`). Embedded
+#' images get a MIME type based on their file extension (PNG, JPEG, WebP,
+#' BMP or TIFF; note that most browsers cannot display TIFF). Images that are
+#' not files on disk (for example `"<magick-image>"` inputs) or that no
+#' longer exist are shown as a placeholder. The report stays a single HTML
+#' file with inline CSS and no JavaScript.
 #'
 #' Failures without pixel statistics (layout differences, errors, or baseline
 #' images with no current counterpart) show "-" for the diff percentage and
@@ -54,6 +67,9 @@
 #' # Self-contained report with embedded images
 #' batch_report(results, output_file = "report.html", embed = TRUE)
 #'
+#' # Baseline, current and diff images side by side
+#' batch_report(results, output_file = "report.html", images = "all")
+#'
 #' # Get HTML as string
 #' html <- batch_report(results)
 #' }
@@ -64,8 +80,10 @@ batch_report <- function(object,
                          relative_paths = FALSE,
                          n_worst = 10,
                          show_all = FALSE,
+                         images = c("diff", "all"),
                          ...) {
   stopifnot(inherits(object, "odiffr_batch"))
+  images <- match.arg(images)
 
 
   n_worst <- suppressWarnings(as.integer(n_worst))
@@ -84,7 +102,8 @@ batch_report <- function(object,
     embed = embed,
     show_all = show_all,
     output_file = output_file,
-    relative_paths = relative_paths
+    relative_paths = relative_paths,
+    images = images
   )
 
 
@@ -105,14 +124,15 @@ batch_report <- function(object,
 
 
 .build_html_report <- function(batch, summ, title, embed, show_all,
-                               output_file = NULL, relative_paths = FALSE) {
+                               output_file = NULL, relative_paths = FALSE,
+                               images = "diff") {
   paste0(
     .html_head(title),
     "<body>\n",
     .html_header(title),
     .html_summary_section(summ),
-    .html_worst_section(summ, embed, output_file, relative_paths),
-    if (show_all) .html_all_results_section(batch, embed, output_file, relative_paths) else "",
+    .html_worst_section(summ, embed, output_file, relative_paths, images),
+    if (show_all) .html_all_results_section(batch, embed, output_file, relative_paths, images) else "",
     .html_footer(),
     "</body>\n</html>"
   )
@@ -156,6 +176,15 @@ batch_report <- function(object,
     ".fail { color: #dc3545; }\n",
     ".diff-preview { max-width: 200px; max-height: 150px; border: 1px solid #ddd; }\n",
     ".no-image { color: #888; font-style: italic; }\n",
+    ".img-set { display: flex; gap: 8px; flex-wrap: wrap; }\n",
+    ".img-set figure { margin: 0; text-align: center; width: 160px; }\n",
+    ".img-set figcaption { font-size: 0.8em; color: #666; }\n",
+    ".img-set .no-image { display: flex; align-items: center; justify-content: center; ",
+    "width: 160px; height: 100px; border: 1px dashed #ccc; font-size: 0.85em; }\n",
+    ".thumb { max-width: 160px; max-height: 120px; border: 1px solid #ddd; cursor: zoom-in; }\n",
+    "img.thumb.zoom:focus { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); ",
+    "max-width: 95vw; max-height: 95vh; z-index: 10; background: #fff; ",
+    "box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6); cursor: zoom-out; outline: none; }\n",
     ".error-msg { display: block; color: #a94442; font-size: 0.85em; white-space: pre-wrap; }\n",
     ".reasons ul { margin: 10px 0; padding-left: 20px; }\n",
     ".diff-stats table { width: auto; }\n",
@@ -232,19 +261,16 @@ batch_report <- function(object,
 }
 
 
-.html_worst_section <- function(summ, embed, output_file = NULL, relative_paths = FALSE) {
+.html_worst_section <- function(summ, embed, output_file = NULL, relative_paths = FALSE,
+                                images = "diff") {
   if (is.null(summ$worst) || nrow(summ$worst) == 0) {
     return('<section class="worst-offenders">\n<h2>Worst Offenders</h2>\n<p>No failures to display.</p>\n</section>\n')
   }
 
   rows <- vapply(seq_len(nrow(summ$worst)), function(i) {
     row <- summ$worst[i, ]
-    img_label <- if (!is.na(row$img2) && row$img2 != "<magick-image>") {
-      basename(row$img2)
-    } else {
-      paste0("pair ", row$pair_id)
-    }
-    img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
+    img_label <- .row_label(row)
+    img_html <- .format_row_images(row, images, embed, output_file, relative_paths)
 
     sprintf(
       '<tr>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  %s\n  <td>%s</td>\n</tr>',
@@ -259,7 +285,8 @@ batch_report <- function(object,
 
   paste0(
     '<section class="worst-offenders">\n<h2>Worst Offenders</h2>\n<table>\n',
-    '<thead><tr><th>#</th><th>Image</th><th>Diff %</th><th>Pixels</th><th>Reason</th><th>Preview</th></tr></thead>\n',
+    sprintf('<thead><tr><th>#</th><th>Image</th><th>Diff %%</th><th>Pixels</th><th>Reason</th><th>%s</th></tr></thead>\n',
+            .images_header(images)),
     '<tbody>\n',
     paste(rows, collapse = "\n"),
     '\n</tbody>\n</table>\n</section>\n'
@@ -267,7 +294,8 @@ batch_report <- function(object,
 }
 
 
-.html_all_results_section <- function(batch, embed, output_file = NULL, relative_paths = FALSE) {
+.html_all_results_section <- function(batch, embed, output_file = NULL, relative_paths = FALSE,
+                                      images = "diff") {
   if (nrow(batch) == 0) {
     return('<section class="all-results">\n<h2>All Comparisons</h2>\n<p>No comparisons to display.</p>\n</section>\n')
   }
@@ -278,15 +306,11 @@ batch_report <- function(object,
     status_class <- if (is_match) "pass" else "fail"
     status_text <- if (is_match) "PASS" else "FAIL"
 
-    img_label <- if (!is.na(row$img2) && row$img2 != "<magick-image>") {
-      basename(row$img2)
-    } else {
-      paste0("pair ", row$pair_id)
-    }
+    img_label <- .row_label(row)
 
     diff_pct <- .fmt_pct(row$diff_percentage)
     diff_cnt <- .fmt_count(row$diff_count)
-    img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
+    img_html <- .format_row_images(row, images, embed, output_file, relative_paths)
 
     sprintf(
       '<tr>\n  <td>%d</td>\n  <td class="%s">%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  %s\n  <td>%s</td>\n</tr>',
@@ -302,7 +326,8 @@ batch_report <- function(object,
 
   paste0(
     '<section class="all-results">\n<h2>All Comparisons</h2>\n<table>\n',
-    '<thead><tr><th>#</th><th>Status</th><th>Image</th><th>Diff %</th><th>Pixels</th><th>Reason</th><th>Preview</th></tr></thead>\n',
+    sprintf('<thead><tr><th>#</th><th>Status</th><th>Image</th><th>Diff %%</th><th>Pixels</th><th>Reason</th><th>%s</th></tr></thead>\n',
+            .images_header(images)),
     '<tbody>\n',
     paste(rows, collapse = "\n"),
     '\n</tbody>\n</table>\n</section>\n'
@@ -335,18 +360,122 @@ batch_report <- function(object,
 
 .format_diff_image <- function(path, embed, output_file = NULL, relative_paths = FALSE,
                                windows = .Platform$OS.type == "windows") {
-  if (is.na(path) || !file.exists(path)) {
+  if (!.image_file_exists(path)) {
     return('<span class="no-image">No diff</span>')
   }
+  src <- .image_uri(path, embed, output_file, relative_paths, windows = windows)
+  sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(src))
+}
 
+
+# Internal: header of the image column in the report tables.
+.images_header <- function(images) {
+  if (identical(images, "all")) "Images" else "Preview"
+}
+
+
+# Internal: HTML for the image column of a batch row: the diff preview only
+# (`images = "diff"`) or baseline, current and diff thumbnails side by side
+# (`images = "all"`).
+.format_row_images <- function(row, images, embed, output_file = NULL,
+                               relative_paths = FALSE,
+                               windows = .Platform$OS.type == "windows") {
+  get_path <- function(col) {
+    if (col %in% names(row)) as.character(row[[col]][[1]]) else NA_character_
+  }
+  diff_path <- get_path("diff_output")
+  if (!identical(images, "all")) {
+    return(.format_diff_image(diff_path, embed, output_file, relative_paths,
+                              windows = windows))
+  }
+
+  reason <- if ("reason" %in% names(row)) row$reason[[1]] else NA_character_
+  current_missing <- if (identical(reason, "missing")) "Missing" else NULL
+
+  paste0(
+    '<div class="img-set">',
+    .format_thumbnail(get_path("img1"), "Baseline", embed, output_file,
+                      relative_paths, windows = windows),
+    .format_thumbnail(get_path("img2"), "Current", embed, output_file,
+                      relative_paths, windows = windows,
+                      placeholder = current_missing),
+    .format_thumbnail(diff_path, "Diff", embed, output_file,
+                      relative_paths, windows = windows,
+                      placeholder = "No diff"),
+    '</div>'
+  )
+}
+
+
+# Internal: a captioned, clickable thumbnail for any image file. Linked
+# reports wrap the image in a link to the full-size file; embedded reports
+# use a CSS-only zoom on focus (linking would duplicate the data URI, and
+# browsers block navigation to data: URLs). Paths that are not files on
+# disk show a placeholder.
+.format_thumbnail <- function(path, caption, embed, output_file = NULL,
+                              relative_paths = FALSE,
+                              windows = .Platform$OS.type == "windows",
+                              placeholder = NULL) {
+  alt <- .html_escape(tolower(caption))
+  if (!.image_file_exists(path)) {
+    if (is.null(placeholder)) {
+      placeholder <- if (!is.na(path) && grepl("^<.*>$", path)) {
+        "In memory (no file)"
+      } else {
+        "Not available"
+      }
+    }
+    body <- sprintf('<span class="no-image">%s</span>', .html_escape(placeholder))
+  } else {
+    src <- .html_escape(.image_uri(path, embed, output_file, relative_paths,
+                                   windows = windows))
+    body <- if (embed) {
+      sprintf('<img class="thumb zoom" tabindex="0" src="%s" alt="%s" title="Click to enlarge" />',
+              src, alt)
+    } else {
+      sprintf('<a href="%s" target="_blank"><img class="thumb" src="%s" alt="%s" /></a>',
+              src, src, alt)
+    }
+  }
+  sprintf('<figure>%s<figcaption>%s</figcaption></figure>', body, .html_escape(caption))
+}
+
+
+# Internal: TRUE if `path` names an existing file (not NA, "" or a
+# placeholder label such as "<magick-image>").
+.image_file_exists <- function(path) {
+  path <- as.character(path)
+  length(path) == 1 && !.is_placeholder_path(path) && file.exists(path) &&
+    !dir.exists(path)
+}
+
+
+# Internal: URI for an image file: a base64 data URI when `embed` is TRUE,
+# otherwise a relative URL or file:// URI (see .image_src()). The result
+# still needs HTML escaping.
+.image_uri <- function(path, embed, output_file = NULL, relative_paths = FALSE,
+                       windows = .Platform$OS.type == "windows") {
   if (embed) {
     raw_data <- readBin(path, "raw", file.info(path)$size)
-    b64 <- .base64_encode(raw_data)
-    sprintf('<img class="diff-preview" src="data:image/png;base64,%s" alt="diff" />', b64)
+    paste0("data:", .image_mime(path), ";base64,", .base64_encode(raw_data))
   } else {
-    src <- .image_src(path, output_file, relative_paths, windows = windows)
-    sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(src))
+    .image_src(path, output_file, relative_paths, windows = windows)
   }
+}
+
+
+# Internal: MIME type of an image file from its extension; PNG when the
+# extension is unknown (odiff diff images are always PNG).
+.image_mime <- function(path) {
+  base <- basename(as.character(path))
+  ext <- ifelse(grepl(".", base, fixed = TRUE),
+                tolower(sub("^.*\\.", "", base)), "")
+  types <- c(png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg",
+             webp = "image/webp", bmp = "image/bmp", tif = "image/tiff",
+             tiff = "image/tiff")
+  out <- unname(types[ext])
+  out[is.na(out)] <- "image/png"
+  out
 }
 
 
@@ -429,7 +558,7 @@ batch_report <- function(object,
 .relative_path_or_na <- function(target_path, from_file,
                                  windows = .Platform$OS.type == "windows") {
   # normalizePath with mustWork=FALSE is safe here because we only call this
-  # function when the target file exists (checked in .format_diff_image).
+  # function when the target file exists (checked by .image_file_exists).
   # For from_file, we normalize the directory (which should exist) rather than
   # the file itself (which may not exist yet), to ensure consistent symlink
   # resolution on macOS where /var -> /private/var.
