@@ -14,7 +14,7 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
 
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }}, odiff ${{ matrix.config.odiff || 'latest' }})
 
     strategy:
       fail-fast: false
@@ -25,10 +25,13 @@ jobs:
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,  r: 'release'}
           - {os: ubuntu-latest,  r: 'oldrel-1'}
+          # Minimum supported odiff version
+          - {os: ubuntu-latest,  r: 'release', odiff: '4.1.1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      ODIFF_NPM_VERSION: ${{ matrix.config.odiff || 'latest' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -38,39 +41,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install odiff (Unix)
         if: runner.os != 'Windows'
         run: |
-          npm install -g odiff-bin
+          npm install -g "odiff-bin@${ODIFF_NPM_VERSION}"
           NPM_BIN=$(npm config get prefix)/bin
           echo "$NPM_BIN" >> $GITHUB_PATH
-          # Create symlink if odiff binary doesn't exist
-          if [ ! -f "$NPM_BIN/odiff" ]; then
-            NPM_ROOT=$(npm root -g)
-            ODIFF_BIN="$NPM_ROOT/odiff-bin/bin/odiff"
-            if [ -f "$ODIFF_BIN" ]; then
-              ln -sf "$ODIFF_BIN" "$NPM_BIN/odiff"
-            else
-              # Find the correct binary for this platform
-              PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
-              ARCH=$(uname -m)
-              if [ "$ARCH" = "x86_64" ]; then ARCH="x64"; fi
-              if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
-              RAW_BIN="$NPM_ROOT/odiff-bin/raw_binaries/odiff-${PLATFORM}-${ARCH}"
-              if [ -f "$RAW_BIN" ]; then
-                chmod +x "$RAW_BIN"
-                ln -sf "$RAW_BIN" "$NPM_BIN/odiff"
-              fi
-            fi
-          fi
 
       - name: Install odiff (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          npm install -g odiff-bin
+          npm install -g "odiff-bin@$env:ODIFF_NPM_VERSION"
           # npm rebuild fixes the cmd-shim bug where odiff.cmd runs .exe through node
           npm rebuild odiff-bin -g
           $npmPrefix = npm config get prefix
