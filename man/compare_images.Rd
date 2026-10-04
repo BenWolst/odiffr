@@ -48,6 +48,9 @@ A tibble (if available) or data.frame with columns:
 \item{diff_output}{Character; path to diff image, or \code{NA}.}
 \item{img1}{Character; path to first image.}
 \item{img2}{Character; path to second image.}
+\item{error}{Character; the error message reported by odiff when
+\code{reason} is \code{"error"} (e.g. an image could not be loaded or has an
+unsupported format), otherwise \code{NA}. This is always the last column.}
 }
 }
 \description{

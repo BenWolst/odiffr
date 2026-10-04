@@ -322,7 +322,8 @@ batch_report <- function(object,
     .html_escape(reason)
   }
 
-  if (is.na(err)) {
+  # Missing rows already have a self-explanatory label
+  if (is.na(err) || identical(reason, "missing")) {
     sprintf("<td>%s</td>", label)
   } else {
     err_html <- .html_escape(err)

@@ -185,7 +185,8 @@ print.odiffr_batch_summary <- function(x, ...) {
   } else {
     reason
   }
-  if (!is.na(err)) {
+  # Missing rows already have a self-explanatory label
+  if (!is.na(err) && !identical(reason, "missing")) {
     text <- paste0(text, ": ", err)
   }
   text
