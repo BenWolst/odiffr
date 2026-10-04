@@ -135,7 +135,7 @@ audit_record <- function(x, file = NULL, format = c("json", "csv"),
     params <- x$params
   }
 
-  odiff_path <- tryCatch(find_odiff(), error = function(e) NA_character_)
+  odiff_path <- tryCatch(.find_odiff_details()$path, error = function(e) NA_character_)
   odiff_version <- tryCatch(odiff_version(), error = function(e) {
     NA_character_
   })

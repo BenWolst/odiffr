@@ -9,7 +9,8 @@ Description: R bindings to 'odiff', a fast SIMD pixel-by-pixel image
     thresholds, antialiasing detection and ignore regions. Provides 'testthat'
     expectations and snapshot testing (including for 'shinytest2' screenshots),
     batch and directory comparison, HTML, Markdown and JUnit reports, baseline
-    approval and audit records. Requires a system installation of 'odiff'.
+    approval and audit records. Requires the 'odiff' binary, which can be
+    downloaded with install_odiff().
 SystemRequirements: odiff (>= 4.1.1) - https://github.com/dmtrKovalenko/odiff
 License: MIT + file LICENSE
 URL: https://benwolst.github.io/odiffr/, https://github.com/BenWolst/odiffr

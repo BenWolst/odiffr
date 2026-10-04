@@ -14,10 +14,21 @@ Locates the odiff executable using a priority-based search:
 \enumerate{
 \item User-specified path via \code{options(odiffr.path = "...")}
 \item System PATH (\code{Sys.which("odiff")})
-\item Cached binary from \code{odiffr_update()}
+\item Cached binary from \code{\link[=install_odiff]{install_odiff()}} (or \code{odiffr_update()})
 }
 }
 \details{
+\strong{Installing odiff.} If odiff cannot be found and the R session is
+interactive, \code{find_odiff()} (and so \code{\link[=compare_images]{compare_images()}}, \code{\link[=odiff_run]{odiff_run()}} and
+the other functions that need the binary) offers once per session to
+download the latest odiff release to the user cache with
+\code{\link[=install_odiff]{install_odiff()}}. Nothing is ever downloaded without asking: the offer is
+never made in non-interactive sessions, while running tests with testthat,
+while knitting, or during \verb{R CMD check}. Set
+\code{options(odiffr.ask_install = FALSE)} to turn the offer off. If the offer
+is declined, \code{find_odiff()} signals an error explaining how to install
+odiff. \code{\link[=odiff_available]{odiff_available()}} never makes the offer.
+
 \strong{npm installs.} Since odiff 4.4, \verb{npm install -g odiff-bin} puts a
 small Node.js launcher script on the PATH, which starts Node and then
 spawns the native binary shipped in an \verb{@odiff/<platform>-<arch>}

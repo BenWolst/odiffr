@@ -27,6 +27,19 @@
 
 ## New Features
 
+* `install_odiff()` downloads the odiff binary for your platform to the user
+  cache, so odiff can be installed from R without Node.js or npm. When odiff is
+  not found, functions that need it (e.g. `compare_images()`) now offer to run
+  `install_odiff()` in interactive sessions, once per session; nothing is ever
+  downloaded without asking, and the offer is never made in non-interactive
+  sessions, testthat runs, while knitting or during `R CMD check`. Set
+  `options(odiffr.ask_install = FALSE)` to turn it off. `odiff_available()`
+  remains a silent check. The startup message and the "odiff binary not found"
+  error now recommend `install_odiff()`.
+* `use_odiffr_ci()` writes a ready-to-use GitHub Actions workflow for visual
+  tests: it installs odiff with `install_odiff()`, runs the testthat tests,
+  adds a `snapshot_report()` summary of changed image snapshots to the job
+  summary and uploads new snapshots and diff images when tests fail.
 * `find_odiff()` now bypasses the Node.js launcher script installed by
   `npm install -g odiff-bin` (odiff >= 4.4) and calls the native odiff binary
   directly, making each comparison around 5x faster. A path set with

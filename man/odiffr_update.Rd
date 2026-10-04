@@ -22,6 +22,7 @@ Character string with the path to the downloaded binary.
 Downloads the odiff binary from GitHub releases to the user's cache
 directory. The downloaded binary will be used by \code{find_odiff()} if no
 system-wide installation or user-specified path is found.
+\code{\link[=install_odiff]{install_odiff()}} is the recommended, user-facing way to do this.
 }
 \details{
 The latest release is looked up via the GitHub API. If the \code{GITHUB_PAT}

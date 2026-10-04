@@ -3,9 +3,21 @@
 #' Locates the odiff executable using a priority-based search:
 #' 1. User-specified path via `options(odiffr.path = "...")`
 #' 2. System PATH (`Sys.which("odiff")`)
-#' 3. Cached binary from `odiffr_update()`
+#' 3. Cached binary from [install_odiff()] (or `odiffr_update()`)
 #'
 #' @details
+#' **Installing odiff.** If odiff cannot be found and the R session is
+#' interactive, `find_odiff()` (and so [compare_images()], [odiff_run()] and
+#' the other functions that need the binary) offers once per session to
+#' download the latest odiff release to the user cache with
+#' [install_odiff()]. Nothing is ever downloaded without asking: the offer is
+#' never made in non-interactive sessions, while running tests with testthat,
+#' while knitting, or during `R CMD check`. Set
+#' `options(odiffr.ask_install = FALSE)` to turn the offer off. If the offer
+#' is declined, `find_odiff()` signals an error explaining how to install
+#' odiff. [odiff_available()] never makes the offer.
+#'
+
 #' **npm installs.** Since odiff 4.4, `npm install -g odiff-bin` puts a
 #' small Node.js launcher script on the PATH, which starts Node and then
 #' spawns the native binary shipped in an `@odiff/<platform>-<arch>`
@@ -36,13 +48,16 @@
 #' find_odiff()
 #' }
 find_odiff <- function() {
-  .find_odiff_details()$path
+  .find_odiff_details(offer = TRUE)$path
 }
 
 # Internal: locate the binary and report how it was found.
 # Returns list(path, source, shim) where `shim` is the path of the npm
 # launcher the binary was resolved from (or NA_character_).
-.find_odiff_details <- function() {
+# `offer = TRUE` (used only by find_odiff()) may offer to install odiff
+# interactively when it is not found; all silent checks such as
+# odiff_available() and odiff_info() use the default `offer = FALSE`.
+.find_odiff_details <- function(offer = FALSE) {
   # 1. Check user-specified option (used as-is, never resolved)
   opt_path <- getOption("odiffr.path")
   if (!is.null(opt_path) && nzchar(opt_path)) {
@@ -67,23 +82,71 @@ find_odiff <- function() {
     return(list(path = path, source = "system", shim = NA_character_))
   }
 
-  # 3. Check cached binary from odiffr_update()
+  # 3. Check cached binary from install_odiff() / odiffr_update()
   cached <- .cached_binary()
   if (!is.null(cached) && file.exists(cached)) {
     return(list(path = cached, source = "cached", shim = NA_character_))
   }
 
+  # 4. Interactively offer to download odiff (never in non-interactive use)
+  if (isTRUE(offer) && .should_offer_install()) {
+    .odiffr_env$install_asked <- TRUE
+    if (isTRUE(.offer_install())) {
+      path <- install_odiff()
+      return(list(path = normalizePath(path, mustWork = TRUE),
+                  source = "cached", shim = NA_character_))
+    }
+  }
+
   stop(
     "odiff binary not found. Install it using one of:\n",
+    "  - R: odiffr::install_odiff() to download it to the user cache ",
+    "(no Node.js needed)\n",
     "  - npm: npm install -g odiff-bin\n",
     "  - Download: https://github.com/dmtrKovalenko/odiff/releases\n",
-    "  - R: odiffr_update() to download to cache\n",
     "Or set options(odiffr.path = '/path/to/odiff')",
     call. = FALSE
   )
 }
 
+# Internal: wrapper for interactive() (enables mocking in tests)
+.is_interactive <- function() {
+  interactive()
+}
+
+# Internal: may find_odiff() offer to download odiff? Only in an interactive
+# session that is not running tests, knitting or R CMD check, when the offer
+# is not disabled via options(odiffr.ask_install = FALSE) and has not been
+# made before in this session.
+.should_offer_install <- function() {
+  .is_interactive() &&
+    !identical(Sys.getenv("TESTTHAT"), "true") &&
+    !isTRUE(getOption("knitr.in.progress")) &&
+    !nzchar(Sys.getenv("_R_CHECK_PACKAGE_NAME_")) &&
+    !isFALSE(getOption("odiffr.ask_install", TRUE)) &&
+    !isTRUE(.odiffr_env$install_asked)
+}
+
+# Internal: ask whether to download odiff. Returns TRUE, FALSE or NA.
+.offer_install <- function() {
+  utils::askYesNo(paste0(
+    "odiff is required but was not found. Download the latest odiff ",
+    "release to ", odiffr_cache_path(), " now?"
+  ))
+}
+
+# Internal: forget cached binary lookups (version and npm launcher
+# resolution) so a newly installed binary is picked up immediately
+.reset_binary_caches <- function() {
+  .odiffr_env$version_cache <- NULL
+  .odiffr_env$npm_cache <- NULL
+  invisible(NULL)
+}
+
 #' Check if odiff is Available
+#'
+#' A silent check: unlike [find_odiff()], it never offers to install odiff,
+#' so it is safe to use in skip conditions and scripts.
 #'
 #' @return Logical `TRUE` if odiff is found and executable, `FALSE` otherwise.
 #' @export
@@ -91,9 +154,10 @@ find_odiff <- function() {
 #' @examples
 #' odiff_available()
 odiff_available <- function() {
+  # Never offers to install odiff: this is a silent check (e.g. for skips)
   tryCatch(
     {
-      path <- find_odiff()
+      path <- .find_odiff_details(offer = FALSE)$path
       file.exists(path)
     },
     error = function(e) FALSE
@@ -119,7 +183,8 @@ odiff_version <- function() {
     return(NA_character_)
   }
 
-  path <- tryCatch(find_odiff(), error = function(e) NA_character_)
+  path <- tryCatch(.find_odiff_details(offer = FALSE)$path,
+                   error = function(e) NA_character_)
   if (is.na(path)) {
     return(NA_character_)
   }
