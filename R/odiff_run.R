@@ -10,7 +10,7 @@
 #'   replaced by `.png`, and a path with no extension gets `.png` appended
 #'   (both with a warning). If `NULL`, no diff image is created. No diff image
 #'   is written when the images match.
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Lower values are more precise. Default is 0.1.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE`.

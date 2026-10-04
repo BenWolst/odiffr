@@ -1,18 +1,21 @@
 Package: odiffr
 Title: Fast Pixel-by-Pixel Image Comparison Using 'odiff'
-Version: 0.5.1
+Version: 0.6.0
 Authors@R:
     person("Ben", "Wolstenholme", , "odiffr@benwolst.dev", role = c("aut", "cre"))
-Description: R bindings to 'odiff', a blazing-fast pixel-by-pixel image
-    comparison tool <https://github.com/dmtrKovalenko/odiff>. Supports PNG,
-    JPEG, WEBP, and TIFF with configurable thresholds, antialiasing detection,
-    and region ignoring. Requires system installation of 'odiff'. Ideal for
-    visual regression testing in automated workflows.
-SystemRequirements: odiff (>= 3.0.0) - https://github.com/dmtrKovalenko/odiff
+Description: R bindings to 'odiff', a fast SIMD pixel-by-pixel image
+    comparison tool <https://github.com/dmtrKovalenko/odiff>. Compares PNG,
+    JPEG, WEBP, TIFF and BMP images, plots and PDF pages with configurable
+    thresholds, antialiasing detection and ignore regions. Provides 'testthat'
+    expectations and snapshot testing (including for 'shinytest2' screenshots),
+    batch and directory comparison, HTML, Markdown and JUnit reports, baseline
+    approval and audit records. Requires a system installation of 'odiff'.
+SystemRequirements: odiff (>= 4.1.1) - https://github.com/dmtrKovalenko/odiff
 License: MIT + file LICENSE
-URL: https://github.com/BenWolst/odiffr
+URL: https://benwolst.github.io/odiffr/, https://github.com/BenWolst/odiffr
 BugReports: https://github.com/BenWolst/odiffr/issues
 Encoding: UTF-8
+Language: en-GB
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:

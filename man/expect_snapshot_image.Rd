@@ -33,7 +33,7 @@ file path, or the variable name when \code{x} is a simple variable (e.g.
 (e.g. an inline function), \code{name} must be supplied. Names must be unique
 within a test file.}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1 (or the value from \code{preset}).}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

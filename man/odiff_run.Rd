@@ -33,7 +33,7 @@ replaced by \code{.png}, and a path with no extension gets \code{.png} appended
 (both with a warning). If \code{NULL}, no diff image is created. No diff image
 is written when the images match.}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Lower values are more precise. Default is 0.1.}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

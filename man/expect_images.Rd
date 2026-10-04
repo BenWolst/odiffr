@@ -32,7 +32,7 @@ expect_images_differ(
 
 \item{expected}{Path to the expected/baseline image, or a magick-image object.}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1.}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

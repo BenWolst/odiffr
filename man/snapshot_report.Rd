@@ -31,7 +31,7 @@ is set, and otherwise writes nothing (see \code{\link[=batch_markdown]{batch_mar
 \item{format}{Report format: \code{"html"} (\code{\link[=batch_report]{batch_report()}}), \code{"markdown"}
 (\code{\link[=batch_markdown]{batch_markdown()}}) or \code{"junit"} (\code{\link[=batch_junit]{batch_junit()}}).}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1 (or the value from \code{preset}). Use the settings of the
 tests that produced the snapshots to get the same verdicts.}
 

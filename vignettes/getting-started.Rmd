@@ -41,7 +41,7 @@ the package to download a binary to your user cache.
 ## Installation
 
 ```{r eval=FALSE}
-# From CRAN (when available)
+# From CRAN
 install.packages("odiffr")
 
 # Development version
@@ -94,14 +94,14 @@ result$diff_output
 
 ### Threshold
 
-The threshold parameter (0-1) controls color sensitivity. Lower values are more
+The threshold parameter (0-1) controls colour sensitivity. Lower values are more
 precise:
 
 ```{r eval=FALSE}
 # Very strict comparison
 result <- compare_images("img1.png", "img2.png", threshold = 0.01)
 
-# More lenient (ignore minor color variations)
+# More lenient (ignore minor colour variations)
 result <- compare_images("img1.png", "img2.png", threshold = 0.2)
 ```
 
@@ -213,12 +213,13 @@ The `odiffr_batch` object returned by `compare_images_batch()` and
 | ----------------- | --------- | --------------------------------------------- |
 | `pair_id`         | integer   | Sequential comparison ID                      |
 | `match`           | logical   | `TRUE` if images match                        |
-| `reason`          | character | `"match"`, `"pixel-diff"`, or `"layout-diff"` |
-| `diff_count`      | integer   | Number of different pixels                    |
-| `diff_percentage` | numeric   | Percentage of pixels different                |
+| `reason`          | character | `"match"`, `"pixel-diff"`, `"layout-diff"`, `"missing"` or `"error"` |
+| `diff_count`      | integer   | Number of different pixels (`0` for a match, `NA` if unknown) |
+| `diff_percentage` | numeric   | Percentage of pixels different (`0` for a match, `NA` if unknown) |
 | `diff_output`     | character | Path to diff image, or `NA`                   |
 | `img1`            | character | Path to baseline image                        |
 | `img2`            | character | Path to current image                         |
+| `error`           | character | Error message when `reason` is `"missing"` or `"error"`, otherwise `NA` |
 
 ### Parallel Processing
 
@@ -619,7 +620,7 @@ on CRAN. To use odiff comparison for image files you write yourself, pass
 ### Diff Images on Failure
 
 When `expect_images_match()` fails, a diff image is automatically saved to
-`tests/testthat/_odiffr/` for debugging. Control this behavior with options:
+`tests/testthat/_odiffr/` for debugging. Control this behaviour with options:
 
 ```{r eval=FALSE}
 # Disable diff image saving

@@ -24,7 +24,7 @@
 #'   diff images are created. When given, the rendered pages are also kept
 #'   under `file.path(diff_dir, "pages")` (in `baseline/` and `current/`
 #'   subdirectories).
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Default is 0.1.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE`.

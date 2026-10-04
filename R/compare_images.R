@@ -14,7 +14,7 @@
 #'   (see `img1`).
 #' @param diff_output Path for the diff output image (PNG only). Use `NULL`
 #'   for no diff output, or `TRUE` to auto-generate a temporary file path.
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Default is 0.1.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE`.

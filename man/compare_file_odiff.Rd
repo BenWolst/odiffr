@@ -15,7 +15,7 @@ compare_file_odiff(
 )
 }
 \arguments{
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1 (or the value from \code{preset}).}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

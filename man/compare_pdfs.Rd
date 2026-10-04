@@ -36,7 +36,7 @@ diff images are created. When given, the rendered pages are also kept
 under \code{file.path(diff_dir, "pages")} (in \verb{baseline/} and \verb{current/}
 subdirectories).}
 
-\item{threshold}{Numeric; color difference threshold between 0.0 and 1.0.
+\item{threshold}{Numeric; colour difference threshold between 0.0 and 1.0.
 Default is 0.1.}
 
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.

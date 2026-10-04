@@ -16,7 +16,7 @@
 #'   is set, and otherwise writes nothing (see [batch_markdown()]).
 #' @param format Report format: `"html"` ([batch_report()]), `"markdown"`
 #'   ([batch_markdown()]) or `"junit"` ([batch_junit()]).
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Default is 0.1 (or the value from `preset`). Use the settings of the
 #'   tests that produced the snapshots to get the same verdicts.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.

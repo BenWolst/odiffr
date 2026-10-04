@@ -18,7 +18,7 @@
 #'   `expect_snapshot_image(p)` uses `"p.png"`). For any other expression
 #'   (e.g. an inline function), `name` must be supplied. Names must be unique
 #'   within a test file.
-#' @param threshold Numeric; color difference threshold between 0.0 and 1.0.
+#' @param threshold Numeric; colour difference threshold between 0.0 and 1.0.
 #'   Default is 0.1 (or the value from `preset`).
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE` (or the value from `preset`).
