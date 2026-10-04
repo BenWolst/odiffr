@@ -276,6 +276,73 @@ test_that("odiff_version returns NA when odiff not available", {
   expect_true(is.na(result))
 })
 
+test_that(".parse_version handles stdout and stderr style output", {
+  expect_equal(
+    odiffr:::.parse_version(
+      "odiff 4.5.0 - SIMD first pixel-by-pixel image comparison tool"
+    ),
+    "4.5.0"
+  )
+  expect_equal(odiffr:::.parse_version(c("", "noise", "odiff v3.1.2")),
+               "3.1.2")
+  expect_true(is.na(odiffr:::.parse_version(character())))
+  expect_true(is.na(odiffr:::.parse_version("something else")))
+})
+
+test_that("odiff_version caches per binary path", {
+  skip_on_os("windows")
+
+  dir <- withr::local_tempdir()
+  counter <- file.path(dir, "calls")
+  make_fake <- function(name, version) {
+    path <- file.path(dir, name)
+    writeLines(c(
+      "#!/bin/sh",
+      sprintf("echo call >> '%s'", counter),
+      sprintf("echo 'odiff %s - fake' >&2", version)
+    ), path)
+    Sys.chmod(path, "0755")
+    path
+  }
+  fake1 <- make_fake("odiff1", "9.8.7")
+  fake2 <- make_fake("odiff2", "1.2.3")
+
+  old_cache <- odiffr:::.odiffr_env$version_cache
+  withr::defer(assign("version_cache", old_cache,
+                      envir = odiffr:::.odiffr_env))
+  assign("version_cache", NULL, envir = odiffr:::.odiffr_env)
+
+  withr::local_options(odiffr.path = fake1)
+  expect_equal(odiff_version(), "9.8.7")
+  expect_equal(odiff_version(), "9.8.7")
+  expect_length(readLines(counter), 1)
+
+  # Changing the binary path invalidates the cache
+  options(odiffr.path = fake2)
+  expect_equal(odiff_version(), "1.2.3")
+  expect_length(readLines(counter), 2)
+})
+
+test_that("odiff_run(enable_asm = TRUE) does not respawn --version", {
+  skip_if_no_odiff()
+
+  odiff_version()  # warm the cache
+  calls <- 0L
+  testthat::local_mocked_bindings(
+    .parse_version = function(lines) {
+      calls <<- calls + 1L
+      NA_character_
+    },
+    .package = "odiffr"
+  )
+
+  img <- create_test_image(10, 10, "red")
+  on.exit(unlink(img), add = TRUE)
+  suppressWarnings(odiff_run(img, img, enable_asm = TRUE))
+  suppressWarnings(odiff_run(img, img, enable_asm = TRUE))
+  expect_equal(calls, 0L)
+})
+
 test_that("odiff_info handles missing binary gracefully", {
   original_opt <- getOption("odiffr.path")
   on.exit(options(odiffr.path = original_opt), add = TRUE)
