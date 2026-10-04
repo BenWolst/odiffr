@@ -268,3 +268,41 @@ test_that("approved directory comparison then matches", {
   expect_equal(nrow(res2), 3)
   expect_true(all(res2$match))
 })
+
+# Regression tests ---------------------------------------------------------
+
+test_that("approve_changes refuses compare_pdfs() results", {
+  b <- make_batch(match = FALSE, reason = "pixel-diff")
+  b$page <- 1L
+  expect_error(approve_changes(b), "does not support compare_pdfs")
+  expect_error(approve_changes(b, dry_run = TRUE), "compare_pdfs")
+})
+
+test_that("approve_changes fails rows that share a baseline", {
+  root <- withr::local_tempdir()
+  base <- write_png(file.path(root, "baseline", "shared.png"), c(1, 0, 0))
+  cur1 <- write_png(file.path(root, "current", "one.png"), c(0, 0, 1))
+  cur2 <- write_png(file.path(root, "current", "two.png"), c(0, 1, 0))
+  other_base <- write_png(file.path(root, "baseline", "other.png"), c(1, 0, 0))
+  other_cur <- write_png(file.path(root, "current", "other.png"), c(0, 0, 1))
+  old <- tools::md5sum(base)
+  b <- make_batch(match = c(FALSE, FALSE, FALSE),
+                  reason = rep("pixel-diff", 3),
+                  img1 = c(base, base, other_base),
+                  img2 = c(cur1, cur2, other_cur))
+  bk <- file.path(root, "backup")
+
+  actions <- suppressMessages(approve_changes(b, backup_dir = bk))
+  expect_equal(actions$action, c("failed", "failed", "updated"))
+  expect_match(actions$detail[1:2], "more than one pair")
+  # The shared baseline is untouched and was not backed up (twice)
+  expect_equal(unname(tools::md5sum(base)), unname(old))
+  expect_false(any(grepl("shared", list.files(bk, recursive = TRUE))))
+  # The unrelated row is still approved
+  expect_true(same_file_content(other_base, other_cur))
+
+  # Selecting one of the rows explicitly approves it
+  actions <- suppressMessages(approve_changes(b, which = 2L))
+  expect_equal(actions$action, "updated")
+  expect_true(same_file_content(base, cur2))
+})

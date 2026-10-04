@@ -79,6 +79,8 @@ test_that("compare_file_odiff() returns a comparison function", {
 test_that("compare_file_odiff() compares files with odiff", {
   skip_if_no_odiff()
   skip_if_not_installed("png")
+  # Keep diff images out of the source tree
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
   dir <- withr::local_tempdir()
   a <- write_snapshot_png(file.path(dir, "a.png"))
   b <- write_snapshot_png(file.path(dir, "b.png"))
@@ -111,6 +113,8 @@ test_that("compare_file_odiff() honours fail_on_layout", {
 
 test_that("compare_file_odiff() warns and returns FALSE when odiff errors", {
   skip_if_no_odiff()
+  # Keep diff images out of the source tree
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
   dir <- withr::local_tempdir()
   a <- write_snapshot_png(file.path(dir, "a.png"))
   bad <- file.path(dir, "bad.png")
@@ -613,6 +617,9 @@ test_that("expect_snapshot_image() writes diff images and honours preset", {
   res <- run_snapshot_test(test_file)
   expect_equal(res$failed, 0)
   expect_false(file.exists(diff))
+  # ... and its now empty directory, but not the _odiffr root
+  expect_false(dir.exists(dirname(diff)))
+  expect_true(dir.exists(file.path(test_dir, "_odiffr")))
 
   # preset = "strict" detects the tiny change that the default ignores
   img2 <- write_snapshot_png(file.path(img_dir, "img2.png"))
@@ -638,4 +645,105 @@ test_that("expect_snapshot_image() validates preset without odiff", {
                                   .package = "odiffr")
   expect_error(expect_snapshot_image("x.png", preset = "nope"),
                "preset must be one of")
+})
+
+# Regression tests ---------------------------------------------------------
+
+test_that("snapshot names are not derived from temporary files", {
+  nm <- odiffr:::.snapshot_image_name
+  tmp <- tempfile(fileext = ".png")
+  expect_error(nm(tmp, NULL, "tmp"), "temporary file.*Supply `name`")
+  expect_error(nm(file.path(withr::local_tempdir(), "plot.png"), NULL, "p"),
+               "temporary file")
+  # With a name it is fine
+  expect_equal(nm(tmp, "plot", "tmp"), "plot.png")
+  # Paths outside tempdir() still use their basename
+  expect_equal(nm("/srv/odiffr-test/shots/home.png", NULL, "x"), "home.png")
+  expect_equal(nm(file.path("output", "home.png"), NULL, "x"), "home.png")
+})
+
+test_that("expect_snapshot_image() errors for a temporary file without name", {
+  skip_if_no_odiff()
+  skip_if_not_installed("png")
+
+  body <- c(
+    "img <- tempfile(fileext = '.png')",
+    "png::writePNG(array(0.5, dim = c(10, 10, 3)), img)",
+    "test_that('temp snapshot', {",
+    "  expect_error(odiffr:::expect_snapshot_image(img), 'Supply `name`')",
+    "})"
+  )
+  test_file <- local_snapshot_project(body)
+  res <- run_snapshot_test(test_file)
+  expect_false(res$error)
+  expect_equal(res$failed, 0)
+  expect_equal(res$passed, 1)
+  expect_false(dir.exists(file.path(dirname(test_file), "_snaps", "img")))
+})
+
+test_that(".remove_empty_dirs() removes empty dirs up to (not incl.) root", {
+  rm_empty <- odiffr:::.remove_empty_dirs
+  root <- file.path(withr::local_tempdir(), "diffs")
+  deep <- file.path(root, "linux", "plots", "img")
+  dir.create(deep, recursive = TRUE)
+  dir.create(file.path(root, "other"))
+  writeLines("x", file.path(root, "other", "keep.txt"))
+
+  # NULL root does nothing
+  expect_invisible(rm_empty(deep, NULL))
+  expect_true(dir.exists(deep))
+
+  rm_empty(deep, root)
+  expect_false(dir.exists(file.path(root, "linux")))
+  expect_true(dir.exists(root))
+  expect_true(file.exists(file.path(root, "other", "keep.txt")))
+
+  # Non-empty directories (and their parents) are kept
+  rm_empty(file.path(root, "other"), root)
+  expect_true(dir.exists(file.path(root, "other")))
+  sub <- file.path(root, "a", "b")
+  dir.create(sub, recursive = TRUE)
+  writeLines("x", file.path(root, "a", "file.txt"))
+  rm_empty(sub, root)
+  expect_false(dir.exists(sub))
+  expect_true(dir.exists(file.path(root, "a")))
+
+  # The root itself is never removed, even when empty
+  empty_root <- withr::local_tempdir()
+  rm_empty(empty_root, empty_root)
+  expect_true(dir.exists(empty_root))
+
+  # Directories outside root are left alone
+  outside <- withr::local_tempdir()
+  rm_empty(outside, root)
+  expect_true(dir.exists(outside))
+})
+
+test_that("compare_file_odiff() removes empty diff dirs after a pass", {
+  skip_if_no_odiff()
+  skip_if_not_installed("png")
+  dir <- withr::local_tempdir()
+  snap_dir <- file.path(dir, "_snaps", "linux", "img")
+  dir.create(snap_dir, recursive = TRUE)
+  old <- write_snapshot_png(file.path(snap_dir, "square.png"))
+  new <- write_snapshot_png(file.path(dir, "new.png"), modify = "region")
+  diff_dir <- file.path(dir, "diffs")
+  cmp <- compare_file_odiff(diff_dir = diff_dir)
+
+  expect_message(expect_false(cmp(old, new)), "diff image")
+  expect_true(file.exists(file.path(diff_dir, "linux", "img",
+                                    "square_diff.png")))
+
+  # Passing removes the diff and its now empty directories, not the root
+  expect_true(cmp(old, old))
+  expect_false(dir.exists(file.path(diff_dir, "linux")))
+  expect_true(dir.exists(diff_dir))
+
+  # Directories holding other diffs are kept
+  expect_message(cmp(old, new), "diff image")
+  other <- file.path(diff_dir, "linux", "other_diff.png")
+  writeLines("x", other)
+  expect_true(cmp(old, old))
+  expect_false(dir.exists(file.path(diff_dir, "linux", "img")))
+  expect_true(file.exists(other))
 })

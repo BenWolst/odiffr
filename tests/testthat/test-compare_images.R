@@ -906,3 +906,38 @@ test_that("compare_dirs_report passes relative_paths to batch_report", {
     grepl('src="diffs/', html, fixed = TRUE)
   )
 })
+
+test_that("compare_images_batch removes stale diffs from a reused diff_dir", {
+  skip_if_no_odiff()
+
+  dir <- withr::local_tempdir()
+  diff_dir <- file.path(dir, "diffs")
+  base <- file.path(dir, "base.png")
+  cur <- file.path(dir, "cur.png")
+  file.copy(create_test_image(30, 30, "red"), base)
+  file.copy(create_test_image(30, 30, "blue"), cur)
+  pairs <- data.frame(img1 = base, img2 = cur, stringsAsFactors = FALSE)
+
+  first <- compare_images_batch(pairs, diff_dir = diff_dir)
+  expect_false(first$match)
+  stale <- first$diff_output
+  expect_true(file.exists(stale))
+
+  # The images now match: no diff is reported and the old one is gone
+  file.copy(base, cur, overwrite = TRUE)
+  second <- compare_images_batch(pairs, diff_dir = diff_dir)
+  expect_true(second$match)
+  expect_true(is.na(second$diff_output))
+  expect_false(file.exists(stale))
+  expect_length(list.files(diff_dir), 0)
+
+  # Likewise when the comparison fails before odiff runs
+  file.copy(create_test_image(30, 30, "blue"), cur, overwrite = TRUE)
+  compare_images_batch(pairs, diff_dir = diff_dir)
+  expect_true(file.exists(stale))
+  unlink(cur)
+  third <- compare_images_batch(pairs, diff_dir = diff_dir)
+  expect_equal(third$reason, "error")
+  expect_true(is.na(third$diff_output))
+  expect_false(file.exists(stale))
+})

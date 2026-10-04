@@ -340,6 +340,7 @@
 # Image dimensions (width, height) without decoding, or NULL if unknown.
 # PNG is read from its IHDR header; other formats use magick if installed.
 .image_dimensions <- function(path) {
+  if (!file.exists(path)) return(NULL)
   head <- tryCatch({
     con <- file(path, "rb")
     on.exit(close(con), add = TRUE)

@@ -296,3 +296,41 @@ test_that("batch comparison accepts plot inputs in list pairs", {
   expect_equal(res$img2, rep("<plot>", 3))
   expect_match(res$error[3], "broken")
 })
+
+test_that("a function returning a lattice plot is printed", {
+  skip_if_no_odiff()
+  skip_if_not_installed("lattice")
+  opts <- plot_options(width = 3, height = 3, res = 40)
+  up <- function() lattice::xyplot(1:10 ~ 1:10)
+  down <- function() lattice::xyplot(10:1 ~ 1:10)
+
+  res <- compare_images(up, down, plot_options = opts)
+  expect_false(res$match)
+  expect_equal(res$reason, "pixel-diff")
+  expect_true(compare_images(up, up, plot_options = opts)$match)
+
+  # Not a blank page
+  path <- odiffr:::.render_plot_with_options(up, opts)
+  on.exit(unlink(path), add = TRUE)
+  expect_gt(length(unique(as.vector(png::readPNG(path)[, , 1:3]))), 1)
+})
+
+test_that("a function returning a grob is drawn", {
+  skip_if_not_installed("png")
+  opts <- plot_options(width = 2, height = 2, res = 20)
+  path <- odiffr:::.render_plot_with_options(
+    function() grid::rectGrob(gp = grid::gpar(fill = "red", col = NA)), opts
+  )
+  on.exit(unlink(path), add = TRUE)
+  img <- png::readPNG(path)
+  centre <- img[20, 20, 1:3]
+  expect_equal(centre, c(1, 0, 0))
+
+  path2 <- odiffr:::.render_plot_with_options(
+    function() grid::gList(grid::rectGrob(gp = grid::gpar(fill = "blue",
+                                                         col = NA))),
+    opts
+  )
+  on.exit(unlink(path2), add = TRUE)
+  expect_equal(png::readPNG(path2)[20, 20, 1:3], c(0, 0, 1))
+})

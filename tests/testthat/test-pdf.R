@@ -321,3 +321,38 @@ test_that("compare_pdf_dirs() supports recursive matching", {
   # Same base name in different folders does not collide
   expect_false(res$img1[1] == res$img1[2])
 })
+
+test_that("a reused diff_dir does not keep renders of pages now missing", {
+  skip_if_no_pdf_support()
+  dir <- withr::local_tempdir()
+  diff_dir <- file.path(dir, "diffs")
+  baseline <- make_test_pdf(3, path = file.path(dir, "baseline.pdf"))
+  current <- make_test_pdf(3, path = file.path(dir, "current.pdf"))
+
+  res <- compare_pdfs(baseline, current, diff_dir = diff_dir, dpi = 30)
+  expect_true(all(res$match))
+  expect_true(file.exists(res$img2[3]))
+  stale <- res$img2[3]
+
+  # The current PDF loses its last page
+  make_test_pdf(2, path = current)
+  expect_message(
+    res <- compare_pdfs(baseline, current, diff_dir = diff_dir, dpi = 30),
+    "Page counts differ"
+  )
+  expect_equal(res$reason[3], "missing")
+  expect_equal(res$img2[3], stale)
+  expect_false(file.exists(res$img2[3]))
+  expect_true(file.exists(res$img1[3]))
+
+  # ... and pages missing from the baseline likewise
+  make_test_pdf(3, path = current)
+  compare_pdfs(baseline, current, diff_dir = diff_dir, dpi = 30)
+  make_test_pdf(2, path = baseline)
+  expect_message(
+    res <- compare_pdfs(baseline, current, diff_dir = diff_dir, dpi = 30),
+    "Page counts differ"
+  )
+  expect_equal(res$reason[3], "error")
+  expect_false(file.exists(res$img1[3]))
+})
