@@ -66,6 +66,10 @@ odiff_available <- function() {
 
 #' Get odiff Version
 #'
+#' The version is cached per binary: repeated calls do not spawn
+#' `odiff --version` again unless the binary path (or the file itself)
+#' changes.
+#'
 #' @return Character string with the odiff version, or `NA_character_` if
 #'   unavailable.
 #' @export
@@ -79,24 +83,65 @@ odiff_version <- function() {
     return(NA_character_)
   }
 
-  tryCatch(
+  path <- tryCatch(find_odiff(), error = function(e) NA_character_)
+  if (is.na(path)) {
+    return(NA_character_)
+  }
+
+  key <- .version_cache_key(path)
+  cached <- .odiffr_env$version_cache
+  if (!is.null(cached) && identical(cached$key, key)) {
+    return(cached$version)
+  }
+
+  version <- tryCatch(
     {
-      path <- find_odiff()
-      result <- system2(path, "--version", stdout = TRUE, stderr = TRUE)
-      # odiff --version output: "odiff X.Y.Z - SIMD first pixel-by-pixel..."
-      # Parse first line for version
-      version_line <- result[1]
-      if (grepl("odiff", version_line, ignore.case = TRUE)) {
-        # Try to extract version number (e.g., "3.1.0" or "4.2.1")
-        version <- gsub(".*?([0-9]+\\.[0-9]+\\.[0-9]+).*", "\\1", version_line)
-        if (nzchar(version) && version != version_line) {
-          return(version)
-        }
-      }
-      NA_character_
+      # odiff 4.x prints the version to stderr, older versions to stdout;
+      # merge both. Output: "odiff X.Y.Z - SIMD first pixel-by-pixel..."
+      result <- suppressWarnings(
+        system2(path, "--version", stdout = TRUE, stderr = TRUE,
+                timeout = 30)
+      )
+      .parse_version(result)
     },
     error = function(e) NA_character_
   )
+
+  # Only cache successful lookups so transient failures are retried
+  if (!is.na(version)) {
+    .odiffr_env$version_cache <- list(key = key, version = version)
+  }
+  version
+}
+
+# Package-level environment for cached state
+.odiffr_env <- new.env(parent = emptyenv())
+
+# Cache key for a binary: its path plus size and modification time, so that
+# replacing the binary in place (e.g. via odiffr_update()) invalidates it
+.version_cache_key <- function(path) {
+  info <- suppressWarnings(file.info(path, extra_cols = FALSE))
+  list(path = path, size = info$size, mtime = as.numeric(info$mtime))
+}
+
+# Extract "X.Y.Z" from `odiff --version` output lines
+.parse_version <- function(lines) {
+  lines <- as.character(lines)
+  lines <- lines[!is.na(lines)]
+  pattern <- "odiff\\s+v?([0-9]+\\.[0-9]+\\.[0-9]+)"
+  hits <- grep(pattern, lines, ignore.case = TRUE, perl = TRUE, value = TRUE)
+  if (length(hits) == 0) {
+    # Fall back to any line that mentions odiff and a version number
+    hits <- grep("odiff", lines, ignore.case = TRUE, value = TRUE)
+    hits <- grep("[0-9]+\\.[0-9]+\\.[0-9]+", hits, value = TRUE)
+    if (length(hits) == 0) {
+      return(NA_character_)
+    }
+    return(regmatches(hits[1], regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", hits[1])))
+  }
+  m <- regmatches(hits[1], regexec(pattern, hits[1], ignore.case = TRUE,
+                                   perl = TRUE))[[1]]
+  m[2]
 }
 
 #' Display odiff Configuration Information

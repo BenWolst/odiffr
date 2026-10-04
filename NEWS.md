@@ -5,6 +5,63 @@
 * `odiff_run()` gains an `enable_asm` parameter to enable AVX-512 optimised
   assembly for ~12% faster comparisons on supported x86_64 CPUs. Requires
   odiff >= 4.1.1.
+* `odiff_run()` gains a `diff_cols` parameter (`--output-diff-cols`) that
+  returns the column numbers containing differences. Requires odiff >= 4.5.0.
+* `odiff_run()` results gain an `error` element, and `compare_images()`,
+  `compare_images_batch()` and `compare_image_dirs()` results gain an `error`
+  column (last), holding odiff's error message when `reason == "error"`.
+  Error messages are also shown by `print()`, in testthat failure messages and
+  in `batch_report()`.
+
+## Bug Fixes
+
+* Image paths containing spaces (or other shell-special characters) now work.
+  Previously every comparison involving such a path failed with
+  `reason = "error"`.
+* `odiff_run(diff_lines = TRUE)` now returns correct `diff_count`,
+  `diff_percentage` and `diff_lines`. Previously the count and percentage were
+  `NA` and the line numbers included unrelated digits.
+* odiff is now always run with `--parsable-stdout` and its machine-readable
+  output is parsed strictly. stdout and stderr are captured separately, so the
+  `stderr` element is now populated.
+* `diff_count` and `diff_percentage` are now `0` (rather than `NA`) for
+  matching images. `NA` now means "unknown" (layout difference or error).
+* `compare_image_dirs()` now reports files missing from `current_dir` as
+  failing rows with `reason = "missing"` instead of silently dropping them
+  (the warning is still emitted), so a disappearing screenshot fails CI.
+* `compare_images_batch()` no longer aborts when a single pair fails
+  (including a nonexistent path, or a parallel worker crash); that pair is
+  reported as a `reason = "error"` row. Empty input returns an empty
+  `odiffr_batch`, and malformed list input gives a clear error.
+* `_R_CHECK_LIMIT_CORES_=false` no longer limits parallel workers to 2.
+* The default `compare_image_dirs()` pattern now matches `.bmp` (supported by
+  odiff) and no longer matches `.tif` (rejected by odiff; use `.tiff`).
+* `expect_images_differ()` now fails, rather than passes, when the images
+  cannot be compared.
+* `expect_images_match()` uses deterministic diff file names, so re-runs
+  overwrite the previous diff instead of accumulating files in `_odiffr/`, and
+  a stale diff is removed once the expectation passes.
+* A `diff_output` path without an extension now gets `.png` appended
+  (previously odiff failed to write the diff).
+* `timeout` values below one second are rounded up to one second instead of
+  silently disabling the timeout; `0` or `Inf` means no timeout. Timeouts are
+  reported via `error`.
+* `threshold`, `diff_color` and `diff_overlay` are validated up front, and
+  small thresholds are no longer passed in scientific notation.
+* `odiff_version()` is cached per binary, so `enable_asm`/`diff_cols` no
+  longer spawn `odiff --version` on every comparison.
+* `batch_report()`: image links are proper `file:///` URIs (or
+  percent-encoded relative URLs), fixing broken images on Windows and for
+  paths containing spaces, `#`, `?` or `%`. Rows without pixel statistics show
+  "-" instead of `NA%`, empty batches produce a valid report, reports are
+  written as UTF-8, the output directory is created if needed, and embedding
+  images is much faster.
+* `summary()` of an empty batch returns `pass_rate = NA` instead of `NaN`.
+* `odiffr_update()` accepts versions with or without the `v` prefix, uses
+  `GITHUB_PAT`/`GITHUB_TOKEN` for the GitHub API, never leaves a partial
+  binary behind after a failed download, gives a clearer error for releases
+  without binaries (e.g. v4.3.8, v4.4.0), and allows at least 300 seconds for
+  the download.
 
 # odiffr 0.5.1
 

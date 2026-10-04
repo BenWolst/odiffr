@@ -28,6 +28,9 @@
 #'     \item{diff_output}{Character; path to diff image, or `NA`.}
 #'     \item{img1}{Character; path to first image.}
 #'     \item{img2}{Character; path to second image.}
+#'     \item{error}{Character; the error message reported by odiff when
+#'       `reason` is `"error"` (e.g. an image could not be loaded or has an
+#'       unsupported format), otherwise `NA`. This is always the last column.}
 #'   }
 #'
 #' @seealso [odiff_run()] for the low-level interface,
@@ -101,6 +104,7 @@ compare_images <- function(img1, img2,
     diff_output = if (is.null(result$diff_output)) NA_character_ else result$diff_output,
     img1 = if (img1_resolved$temp) "<magick-image>" else result$img1,
     img2 = if (img2_resolved$temp) "<magick-image>" else result$img2,
+    error = .odiff_error_message(result),
     stringsAsFactors = FALSE
   )
 
@@ -110,6 +114,30 @@ compare_images <- function(img1, img2,
   } else {
     df
   }
+}
+
+# Internal: extract odiff's error message from an odiff_run() result.
+# Reads `result$error` defensively (older odiff_run() versions do not return
+# it) and falls back to odiff's stderr/stdout text when the comparison failed.
+.odiff_error_message <- function(result) {
+  err <- result$error
+  if (is.null(err) || length(err) == 0) err <- NA_character_
+  err <- as.character(err[[1]])
+  if (!is.na(err) && !nzchar(trimws(err))) err <- NA_character_
+
+  if (is.na(err) && identical(result$reason, "error")) {
+    out <- c(result$stderr, result$stdout)
+    out <- trimws(sub("^\\s*Error:\\s*", "", as.character(out)))
+    out <- out[nzchar(out)]
+    err <- if (length(out) > 0) {
+      paste(out, collapse = "\n")
+    } else if (!is.null(result$exit_code) && !is.na(result$exit_code)) {
+      sprintf("odiff failed with exit code %d", as.integer(result$exit_code))
+    } else {
+      "odiff failed"
+    }
+  }
+  err
 }
 
 #' Compare Multiple Image Pairs
@@ -125,12 +153,25 @@ compare_images <- function(img1, img2,
 #' @param parallel Logical; if `TRUE`, compare images in parallel using
 #'   multiple CPU cores. Uses `parallel::mclapply` on Unix systems (macOS,
 #'   Linux) and falls back to sequential processing on Windows. Default is
-#'   `FALSE`.
+#'   `FALSE`. The number of cores is taken from `getOption("mc.cores")` (or
+#'   detected), capped at the number of pairs, and limited to 2 when the
+#'   `_R_CHECK_LIMIT_CORES_` environment variable is `"TRUE"`/`"true"` or
+#'   `"warn"` (as during `R CMD check --as-cran`).
 #' @param ... Additional arguments passed to [compare_images()].
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
 #'   containing one row per comparison with all columns from [compare_images()]
-#'   plus a `pair_id` column. Use [summary()] to get aggregate statistics.
+#'   (including `error`) plus a leading `pair_id` column. Use [summary()] to
+#'   get aggregate statistics. If `pairs` is empty (a zero-row data.frame or
+#'   an empty list), an empty `odiffr_batch` with the same columns is
+#'   returned.
+#'
+#' @details
+#' A failure while comparing one pair (for example, a file that does not
+#' exist, cannot be read, or has an unsupported format) does not abort the
+#' batch. Instead, that pair is reported as a row with `match = FALSE`,
+#' `reason = "error"`, and the error message in the `error` column. The same
+#' applies to failed worker processes when `parallel = TRUE`.
 #'
 #' @seealso [summary.odiffr_batch()] for summarizing batch results,
 #'   [compare_image_dirs()] for directory-based comparison.
@@ -153,88 +194,115 @@ compare_images <- function(img1, img2,
 #'
 #' # Check which comparisons failed
 #' results[!results$match, ]
+#'
+#' # Inspect errors (e.g. unreadable or missing files)
+#' results[results$reason == "error", c("img1", "img2", "error")]
 #' }
 compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) {
-  # Handle data.frame input
+  pairs_list <- .as_pairs_list(pairs)
+  .compare_pairs(pairs_list, ids = seq_along(pairs_list),
+                 diff_dir = diff_dir, parallel = parallel, ...)
+}
+
+# Internal: convert and validate `pairs` input into a list of pairs
+.as_pairs_list <- function(pairs) {
   if (is.data.frame(pairs)) {
     if (!all(c("img1", "img2") %in% names(pairs))) {
       stop("pairs data.frame must have 'img1' and 'img2' columns.",
            call. = FALSE)
     }
-    pairs_list <- lapply(seq_len(nrow(pairs)), function(i) {
-      list(img1 = pairs$img1[i], img2 = pairs$img2[i])
-    })
-  } else if (is.list(pairs)) {
-    pairs_list <- pairs
-  } else {
+    col <- function(x) if (is.factor(x)) as.character(x) else x
+    img1 <- col(pairs$img1)
+    img2 <- col(pairs$img2)
+    return(lapply(seq_len(nrow(pairs)), function(i) {
+      list(img1 = img1[[i]], img2 = img2[[i]])
+    }))
+  }
+
+  if (!is.list(pairs) || .is_magick_image(pairs)) {
     stop("pairs must be a data.frame or list.", call. = FALSE)
   }
 
-  # Create diff directory if needed
-  if (!is.null(diff_dir) && !dir.exists(diff_dir)) {
-    dir.create(diff_dir, recursive = TRUE)
-  }
-
-  # Define comparison function for each pair
-  compare_one <- function(i) {
-    pair <- pairs_list[[i]]
-
-    # Generate diff output path if diff_dir is provided
-    diff_output <- NULL
-    if (!is.null(diff_dir)) {
-      # Include index to prevent filename collisions (especially in parallel)
-      base_name <- tools::file_path_sans_ext(basename(pair$img2))
-      diff_output <- file.path(diff_dir, sprintf("%03d_%s_diff.png", i, base_name))
+  for (i in seq_along(pairs)) {
+    p <- pairs[[i]]
+    ok <- is.list(p) && !.is_magick_image(p) &&
+      all(c("img1", "img2") %in% names(p)) &&
+      !is.null(p$img1) && !is.null(p$img2)
+    if (!ok) {
+      stop(sprintf(
+        "pairs[[%d]] must be a list with 'img1' and 'img2' elements.", i
+      ), call. = FALSE)
     }
-
-    result <- compare_images(
-      img1 = pair$img1,
-      img2 = pair$img2,
-      diff_output = diff_output,
-      ...
-    )
-
-    # Add pair_id
-    result$pair_id <- i
-    result
   }
+  unname(pairs)
+}
 
-  # Compare pairs (parallel or sequential)
-  if (isTRUE(parallel) && .Platform$OS.type == "unix") {
-    # Use parallel::mclapply on Unix systems
-    # Respect mc.cores option if set, otherwise detect cores
-    n_cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
-    if (is.na(n_cores) || n_cores < 1) n_cores <- 1
+# Internal: column template for batch results
+.batch_columns <- c("pair_id", "match", "reason", "diff_count",
+                    "diff_percentage", "diff_output", "img1", "img2", "error")
 
-    # Cap cores by number of pairs (no point spawning more workers than tasks)
-    n_cores <- min(n_cores, length(pairs_list))
-
-    # Respect CRAN check limits (max 2 cores during R CMD check)
-    check_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", unset = "")
-    if (nzchar(check_limit) && check_limit %in% c("TRUE", "true", "warn", "false")) {
-      n_cores <- min(n_cores, 2L)
-    }
-
-    results <- parallel::mclapply(
-      seq_along(pairs_list),
-      compare_one,
-      mc.cores = n_cores
-    )
+# Internal: describe an image input for result rows
+.describe_image_input <- function(x) {
+  if (is.character(x) && length(x) == 1 && !is.na(x)) {
+    x
+  } else if (.is_magick_image(x)) {
+    "<magick-image>"
   } else {
-    # Sequential processing (Windows or parallel = FALSE)
-    results <- lapply(seq_along(pairs_list), compare_one)
+    NA_character_
   }
+}
 
-  # Combine results
-  combined <- do.call(rbind, results)
+# Internal: build result row(s) as a plain data.frame with consistent
+# column types
+.batch_row <- function(pair_id, match = FALSE, reason = "error",
+                       diff_count = NA_integer_, diff_percentage = NA_real_,
+                       diff_output = NA_character_, img1 = NA_character_,
+                       img2 = NA_character_, error = NA_character_) {
+  data.frame(
+    pair_id = as.integer(pair_id),
+    match = as.logical(match),
+    reason = as.character(reason),
+    diff_count = as.integer(diff_count),
+    diff_percentage = as.numeric(diff_percentage),
+    diff_output = as.character(diff_output),
+    img1 = as.character(img1),
+    img2 = as.character(img2),
+    error = as.character(error),
+    stringsAsFactors = FALSE
+  )
+}
 
-  # Reorder columns
-  col_order <- c("pair_id", setdiff(names(combined), "pair_id"))
-  combined <- combined[, col_order]
+# Internal: normalise a compare_images() result into a .batch_row()
+.normalize_batch_result <- function(res, pair_id) {
+  get <- function(name, default) {
+    v <- res[[name]]
+    if (is.null(v) || length(v) == 0) default else v[[1]]
+  }
+  .batch_row(
+    pair_id = pair_id,
+    match = get("match", FALSE),
+    reason = get("reason", "error"),
+    diff_count = get("diff_count", NA_integer_),
+    diff_percentage = get("diff_percentage", NA_real_),
+    diff_output = get("diff_output", NA_character_),
+    img1 = get("img1", NA_character_),
+    img2 = get("img2", NA_character_),
+    error = get("error", NA_character_)
+  )
+}
 
+# Internal: combine result rows into an odiffr_batch
+.as_odiffr_batch <- function(rows) {
+  if (length(rows) == 0) {
+    combined <- .batch_row(integer(), logical(), character(), integer(),
+                           numeric(), character(), character(), character(),
+                           character())
+  } else {
+    combined <- do.call(rbind, rows)
+  }
+  combined <- combined[, .batch_columns, drop = FALSE]
+  rownames(combined) <- NULL
 
-  # Add class for S3 methods (summary, etc.)
-  # Return tibble if available
   if (requireNamespace("tibble", quietly = TRUE)) {
     result <- tibble::as_tibble(combined)
   } else {
@@ -242,6 +310,115 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
   }
   class(result) <- c("odiffr_batch", class(result))
   result
+}
+
+# Internal: number of cores to use for parallel batch comparison
+.batch_n_cores <- function(n_tasks) {
+  n_cores <- suppressWarnings(as.integer(
+    getOption("mc.cores", parallel::detectCores(logical = FALSE))
+  ))
+  if (length(n_cores) != 1 || is.na(n_cores) || n_cores < 1) n_cores <- 1L
+
+  # No point spawning more workers than tasks
+  n_cores <- max(1L, min(n_cores, n_tasks))
+
+  # Respect CRAN check limits (max 2 cores during R CMD check). Only
+  # "TRUE"/"true" and "warn" request a limit; e.g. "false" does not.
+  check_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", unset = "")
+  if (tolower(check_limit) %in% c("true", "warn")) {
+    n_cores <- min(n_cores, 2L)
+  }
+  as.integer(n_cores)
+}
+
+# Internal: compare a list of (already validated) pairs. `ids` gives the
+# pair_id for each element of `pairs_list`.
+.compare_pairs <- function(pairs_list, ids, diff_dir = NULL,
+                           parallel = FALSE, ...) {
+  if (length(pairs_list) == 0) {
+    return(.as_odiffr_batch(list()))
+  }
+
+  # Create diff directory if needed
+  if (!is.null(diff_dir) && !dir.exists(diff_dir)) {
+    dir.create(diff_dir, recursive = TRUE)
+  }
+
+  error_row <- function(i, msg) {
+    pair <- pairs_list[[i]]
+    .batch_row(
+      pair_id = ids[[i]],
+      img1 = .describe_image_input(pair$img1),
+      img2 = .describe_image_input(pair$img2),
+      error = msg
+    )
+  }
+
+  # Compare one pair; failures become error rows instead of aborting
+  compare_one <- function(i) {
+    pair <- pairs_list[[i]]
+    tryCatch({
+      # Generate diff output path if diff_dir is provided
+      diff_output <- NULL
+      if (!is.null(diff_dir)) {
+        # Include index to prevent filename collisions (especially in parallel)
+        base_name <- if (is.character(pair$img2)) {
+          tools::file_path_sans_ext(basename(pair$img2))
+        } else {
+          "magick"
+        }
+        diff_output <- file.path(
+          diff_dir, sprintf("%03d_%s_diff.png", ids[[i]], base_name)
+        )
+      }
+
+      result <- compare_images(
+        img1 = pair$img1,
+        img2 = pair$img2,
+        diff_output = diff_output,
+        ...
+      )
+      .normalize_batch_result(result, ids[[i]])
+    }, error = function(e) {
+      error_row(i, conditionMessage(e))
+    })
+  }
+
+  if (isTRUE(parallel) && .Platform$OS.type == "unix") {
+    results <- parallel::mclapply(
+      seq_along(pairs_list),
+      compare_one,
+      mc.cores = .batch_n_cores(length(pairs_list))
+    )
+    # Worker failures come back as try-error objects (or NULL if killed)
+    results <- lapply(seq_along(pairs_list), function(i) {
+      r <- if (i <= length(results)) results[[i]] else NULL
+      .parallel_result_or_error(r, function(msg) error_row(i, msg))
+    })
+  } else {
+    # Sequential processing (Windows or parallel = FALSE)
+    results <- lapply(seq_along(pairs_list), compare_one)
+  }
+
+  .as_odiffr_batch(results)
+}
+
+# Internal: turn a parallel worker's return value into a result row,
+# converting try-error objects / missing results via `on_error(msg)`
+.parallel_result_or_error <- function(r, on_error) {
+  if (inherits(r, "try-error")) {
+    cond <- attr(r, "condition")
+    msg <- if (inherits(cond, "condition")) {
+      conditionMessage(cond)
+    } else {
+      trimws(paste(as.character(r), collapse = "\n"))
+    }
+    on_error(paste("Parallel worker failed:", msg))
+  } else if (!is.data.frame(r)) {
+    on_error("Parallel worker returned no result.")
+  } else {
+    r
+  }
 }
 
 #' Compare Images in Two Directories
@@ -253,8 +430,11 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 #' @param baseline_dir Path to the directory containing baseline images.
 #' @param current_dir Path to the directory containing current images to
 #'   compare against baseline.
-#' @param pattern Regular expression pattern to match image files. Default
-#'   matches common image formats (PNG, JPEG, WEBP, TIFF).
+#' @param pattern Regular expression pattern to match image files (matched
+#'   case-insensitively). The default matches the file extensions accepted
+#'   by odiff: `.png`, `.jpg`, `.jpeg`, `.webp`, `.tiff` and `.bmp`. Note
+#'   that odiff does not accept the `.tif` extension; such files
+#'   matched by a custom pattern are reported with `reason = "error"`.
 #' @param recursive Logical; if `TRUE`, search subdirectories recursively.
 #'   Default is `FALSE`.
 #' @param diff_dir Directory to save diff images. If `NULL`, no diff images
@@ -263,18 +443,28 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 #'   [compare_images_batch()] for details.
 #' @param ... Additional arguments passed to [compare_images_batch()].
 #'
-#' @return A tibble (if available) or data.frame with one row per comparison,
-#'   containing all columns from [compare_images()] plus a `pair_id` column.
+#' @return A tibble (if available) or data.frame with class `odiffr_batch`,
+#'   with one row per baseline image (in baseline file order), containing all
+#'   columns from [compare_images()] (including `error`) plus a leading
+#'   `pair_id` column.
 #'
 #' @details
 #' The baseline directory is the source of truth. For each image found in
 #' `baseline_dir` matching `pattern`:
 #' \itemize{
 #'   \item If a corresponding file exists in `current_dir` (same relative
-#'     path), it is included in the comparison.
+#'     path), the two images are compared.
 #'   \item If the file is missing from `current_dir`, a warning is issued and
-#'     the file is excluded from results.
+#'     the file is included in the results as a failed row with
+#'     `match = FALSE`, `reason = "missing"`, `NA` diff statistics and
+#'     `diff_output`, `img2` set to the expected (nonexistent) path, and an
+#'     explanatory `error` message. This ensures that a disappearing
+#'     screenshot fails the comparison. If every file is missing, all rows
+#'     are `"missing"`.
 #' }
+#'
+#' An error is raised if `baseline_dir` contains no images matching
+#' `pattern`.
 #'
 #' Files that exist only in `current_dir` (not in `baseline_dir`) are not
 #' compared, but a message is emitted noting how many such files were found.
@@ -300,12 +490,12 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 #'   diff_dir = "diffs/"
 #' )
 #'
-#' # Check which comparisons failed
+#' # Check which comparisons failed (including missing files)
 #' results[!results$match, ]
 #' }
 compare_image_dirs <- function(baseline_dir,
                                current_dir,
-                               pattern = "\\.(png|jpe?g|webp|tiff?)$",
+                               pattern = "\\.(png|jpe?g|webp|tiff|bmp)$",
                                recursive = FALSE,
                                diff_dir = NULL,
                                parallel = FALSE,
@@ -347,15 +537,11 @@ compare_image_dirs <- function(baseline_dir,
     )
   }
 
-  # Build pairs
-  pairs <- data.frame(
-    img1 = file.path(baseline_dir, baseline_files),
-    img2 = file.path(current_dir, baseline_files),
-    stringsAsFactors = FALSE
-  )
+  img1_paths <- file.path(baseline_dir, baseline_files)
+  img2_paths <- file.path(current_dir, baseline_files)
 
   # Check for missing current files
-  missing <- !file.exists(pairs$img2)
+  missing <- !file.exists(img2_paths)
   if (any(missing)) {
     n_missing <- sum(missing)
     missing_files <- baseline_files[missing]
@@ -368,21 +554,46 @@ compare_image_dirs <- function(baseline_dir,
     )
   }
 
-  # Filter to existing pairs only
-  pairs <- pairs[!missing, , drop = FALSE]
+  # Compare existing pairs; pair_id follows baseline file order
+  ids <- seq_along(baseline_files)
+  present <- which(!missing)
+  pairs_list <- lapply(present, function(i) {
+    list(img1 = img1_paths[[i]], img2 = img2_paths[[i]])
+  })
+  compared <- .compare_pairs(pairs_list, ids = ids[present],
+                             diff_dir = diff_dir, parallel = parallel, ...)
 
-  if (nrow(pairs) == 0) {
-    stop("No matching image pairs found.", call. = FALSE)
+  if (!any(missing)) {
+    return(compared)
   }
 
-  # Delegate to batch
-  compare_images_batch(pairs, diff_dir = diff_dir, parallel = parallel, ...)
+  # Rows for files missing from current_dir
+  current_norm <- normalizePath(current_dir, mustWork = FALSE)
+  missing_idx <- which(missing)
+  missing_rows <- .batch_row(
+    pair_id = ids[missing_idx],
+    match = FALSE,
+    reason = "missing",
+    img1 = normalizePath(img1_paths[missing_idx], mustWork = FALSE),
+    img2 = file.path(current_norm, baseline_files[missing_idx]),
+    error = "File not found in current_dir"
+  )
+
+  compared_df <- as.data.frame(compared, stringsAsFactors = FALSE)
+  class(compared_df) <- "data.frame"
+  combined <- rbind(compared_df[, .batch_columns, drop = FALSE], missing_rows)
+  combined <- combined[order(combined$pair_id), , drop = FALSE]
+  .as_odiffr_batch(list(combined))
 }
 
 # Internal helper to validate directory arguments
 .validate_directory <- function(path, arg_name) {
   if (!is.character(path) || length(path) != 1) {
     stop(arg_name, " must be a single directory path.", call. = FALSE)
+  }
+  if (is.na(path) || !nzchar(trimws(path))) {
+    stop(arg_name, " must be a non-empty directory path, not NA or \"\".",
+         call. = FALSE)
   }
   if (!dir.exists(path)) {
     stop(arg_name, " does not exist: ", path, call. = FALSE)

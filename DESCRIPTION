@@ -20,6 +20,8 @@ Depends:
 Imports:
     tools
 Suggests:
+    base64enc,
+    jsonlite,
     knitr,
     magick,
     png,

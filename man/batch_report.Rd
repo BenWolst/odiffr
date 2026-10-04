@@ -20,17 +20,21 @@ batch_report(
 \code{\link[=compare_image_dirs]{compare_image_dirs()}}.}
 
 \item{output_file}{Path to write the HTML file. If NULL, returns HTML as
-a character string.}
+a character string. The file is written as UTF-8 and its parent
+directory is created if it does not exist.}
 
 \item{title}{Report title. Default: "odiffr Comparison Report".}
 
 \item{embed}{If TRUE, embed diff images as base64 data URIs for a fully
-self-contained file. If FALSE (default), link to image files on disk.}
+self-contained file. If FALSE (default), link to image files on disk
+using \verb{file://} URIs.}
 
 \item{relative_paths}{If TRUE and \code{output_file} is specified, use paths
 relative to the report location for image \code{src} attributes. This makes
-reports portable without embedding. Ignored when \code{embed = TRUE}. Default:
-FALSE.}
+reports portable without embedding. Paths are percent-encoded so that
+file names containing spaces, \verb{#}, \verb{?} or \verb{\%} work. If no relative path
+can be built (e.g. different drives on Windows), a \verb{file://} URI is
+used instead. Ignored when \code{embed = TRUE}. Default: FALSE.}
 
 \item{n_worst}{Number of worst offenders to display. Default: 10.}
 
@@ -53,6 +57,12 @@ Diff image thumbnails (or embedded images when \code{embed = TRUE}) are only
 shown for comparisons where a \code{diff_output} file was created. This requires
 using \code{diff_dir} in \code{\link[=compare_images_batch]{compare_images_batch()}} or \code{\link[=compare_image_dirs]{compare_image_dirs()}}.
 Comparisons without diff images will show "No diff" in the preview column.
+
+Failures without pixel statistics (layout differences, errors, or baseline
+images with no current counterpart) show "-" for the diff percentage and
+pixel count. If the results contain an \code{error} column, its message is
+shown in the Reason column. An empty batch produces a valid report with a
+pass rate of "-".
 }
 \examples{
 \dontrun{

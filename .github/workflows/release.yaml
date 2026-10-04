@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install odiff
         run: npm install -g odiff-bin
@@ -69,11 +69,31 @@ jobs:
       - name: Extract release notes from NEWS.md
         id: release_notes
         run: |
-          # Extract notes for current version from NEWS.md
-          VERSION=$(grep -m1 "^# Odiffr" NEWS.md | sed 's/# Odiffr //')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # Get content between first and second version headers
-          awk '/^# Odiffr/{if(p) exit; p=1; next} p' NEWS.md > release_notes.md
+          set -euo pipefail
+          # Version comes from the git tag (e.g. v0.5.1 -> 0.5.1); for manual
+          # runs on a branch, fall back to the DESCRIPTION version
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(sed -n 's/^Version:[[:space:]]*//p' DESCRIPTION)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Extract the section headed '# odiffr <version>' (case-insensitive)
+          # up to the next top-level '# ' header; fail if it is missing.
+          if ! awk -v ver="$VERSION" '
+            BEGIN { target = tolower("# odiffr " ver) }
+            /^# / {
+              if (found) exit
+              h = tolower($0)
+              sub(/[[:space:]]+$/, "", h)
+              if (h == target) { found = 1; next }
+            }
+            found { print }
+            END { if (!found) exit 1 }
+          ' NEWS.md > release_notes.md; then
+            echo "::error::No '# odiffr ${VERSION}' section found in NEWS.md"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -95,7 +115,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install odiff
         run: npm install -g odiff-bin

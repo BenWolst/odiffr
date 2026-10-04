@@ -7,14 +7,18 @@
 #' @param object An `odiffr_batch` object from [compare_images_batch()] or
 #'   [compare_image_dirs()].
 #' @param output_file Path to write the HTML file. If NULL, returns HTML as
-#'   a character string.
+#'   a character string. The file is written as UTF-8 and its parent
+#'   directory is created if it does not exist.
 #' @param title Report title. Default: "odiffr Comparison Report".
 #' @param embed If TRUE, embed diff images as base64 data URIs for a fully
-#'   self-contained file. If FALSE (default), link to image files on disk.
+#'   self-contained file. If FALSE (default), link to image files on disk
+#'   using `file://` URIs.
 #' @param relative_paths If TRUE and `output_file` is specified, use paths
 #'   relative to the report location for image `src` attributes. This makes
-#'   reports portable without embedding. Ignored when `embed = TRUE`. Default:
-#'   FALSE.
+#'   reports portable without embedding. Paths are percent-encoded so that
+#'   file names containing spaces, `#`, `?` or `%` work. If no relative path
+#'   can be built (e.g. different drives on Windows), a `file://` URI is
+#'   used instead. Ignored when `embed = TRUE`. Default: FALSE.
 #' @param n_worst Number of worst offenders to display. Default: 10.
 #' @param show_all If TRUE, include a table of all comparisons. Default: FALSE.
 #' @param ... Additional arguments passed to [summary.odiffr_batch()].
@@ -28,6 +32,12 @@
 #' shown for comparisons where a `diff_output` file was created. This requires
 #' using `diff_dir` in [compare_images_batch()] or [compare_image_dirs()].
 #' Comparisons without diff images will show "No diff" in the preview column.
+#'
+#' Failures without pixel statistics (layout differences, errors, or baseline
+#' images with no current counterpart) show "-" for the diff percentage and
+#' pixel count. If the results contain an `error` column, its message is
+#' shown in the Reason column. An empty batch produces a valid report with a
+#' pass rate of "-".
 #'
 #' @seealso [compare_images_batch()], [compare_image_dirs()],
 #'   [summary.odiffr_batch()]
@@ -79,7 +89,14 @@ batch_report <- function(object,
 
 
   if (!is.null(output_file)) {
-    writeLines(html, output_file)
+    out_dir <- dirname(output_file)
+    if (!dir.exists(out_dir)) {
+      dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    # Write bytes as UTF-8 regardless of the native encoding (Windows).
+    con <- file(output_file, open = "wb")
+    on.exit(close(con), add = TRUE)
+    writeLines(enc2utf8(html), con, useBytes = TRUE)
     invisible(output_file)
   } else {
     invisible(html)
@@ -139,6 +156,7 @@ batch_report <- function(object,
     ".fail { color: #dc3545; }\n",
     ".diff-preview { max-width: 200px; max-height: 150px; border: 1px solid #ddd; }\n",
     ".no-image { color: #888; font-style: italic; }\n",
+    ".error-msg { display: block; color: #a94442; font-size: 0.85em; white-space: pre-wrap; }\n",
     ".reasons ul { margin: 10px 0; padding-left: 20px; }\n",
     ".diff-stats table { width: auto; }\n",
     ".diff-stats td:first-child { font-weight: 600; padding-right: 20px; }\n",
@@ -155,28 +173,28 @@ batch_report <- function(object,
 
 
 .html_summary_section <- function(summ) {
-  fail_rate <- (1 - summ$pass_rate) * 100
-  pass_rate <- summ$pass_rate * 100
+  pass_label <- .fmt_pct(summ$pass_rate * 100, 1)
+  fail_label <- .fmt_pct((1 - summ$pass_rate) * 100, 1)
 
   stats_html <- sprintf(
     '<div class="stats">
   <div class="stat passed">
     <span class="value">%d</span>
-    <span class="label">Passed (%.1f%%)</span>
+    <span class="label">Passed (%s)</span>
   </div>
 
   <div class="stat failed">
     <span class="value">%d</span>
-    <span class="label">Failed (%.1f%%)</span>
+    <span class="label">Failed (%s)</span>
   </div>
 </div>\n',
-    summ$passed, pass_rate, summ$failed, fail_rate
+    summ$passed, pass_label, summ$failed, fail_label
   )
 
   reasons_html <- ""
   if (!is.null(summ$reason_counts) && length(summ$reason_counts) > 0) {
     reason_items <- vapply(names(summ$reason_counts), function(reason) {
-      sprintf("  <li>%s: %d</li>", .html_escape(reason), summ$reason_counts[[reason]])
+      sprintf("  <li>%s: %d</li>", .html_escape(reason), as.integer(summ$reason_counts[[reason]]))
     }, character(1))
 
     reasons_html <- sprintf(
@@ -229,12 +247,12 @@ batch_report <- function(object,
     img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
 
     sprintf(
-      '<tr>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%.2f%%</td>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%s</td>\n</tr>',
+      '<tr>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  %s\n  <td>%s</td>\n</tr>',
       i,
       .html_escape(img_label),
-      row$diff_percentage,
-      row$diff_count,
-      .html_escape(row$reason),
+      .fmt_pct(row$diff_percentage),
+      .fmt_count(row$diff_count),
+      .html_reason_cell(row),
       img_html
     )
   }, character(1))
@@ -250,10 +268,15 @@ batch_report <- function(object,
 
 
 .html_all_results_section <- function(batch, embed, output_file = NULL, relative_paths = FALSE) {
+  if (nrow(batch) == 0) {
+    return('<section class="all-results">\n<h2>All Comparisons</h2>\n<p>No comparisons to display.</p>\n</section>\n')
+  }
+
   rows <- vapply(seq_len(nrow(batch)), function(i) {
     row <- batch[i, ]
-    status_class <- if (row$match) "pass" else "fail"
-    status_text <- if (row$match) "PASS" else "FAIL"
+    is_match <- isTRUE(row$match)
+    status_class <- if (is_match) "pass" else "fail"
+    status_text <- if (is_match) "PASS" else "FAIL"
 
     img_label <- if (!is.na(row$img2) && row$img2 != "<magick-image>") {
       basename(row$img2)
@@ -261,19 +284,18 @@ batch_report <- function(object,
       paste0("pair ", row$pair_id)
     }
 
-    diff_pct <- if (is.na(row$diff_percentage)) "-" else sprintf("%.2f%%", row$diff_percentage)
-    diff_cnt <- if (is.na(row$diff_count)) "-" else as.character(row$diff_count)
-    reason <- if (is.na(row$reason)) "-" else .html_escape(row$reason)
+    diff_pct <- .fmt_pct(row$diff_percentage)
+    diff_cnt <- .fmt_count(row$diff_count)
     img_html <- .format_diff_image(row$diff_output, embed, output_file, relative_paths)
 
     sprintf(
-      '<tr>\n  <td>%d</td>\n  <td class="%s">%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n</tr>',
-      row$pair_id,
+      '<tr>\n  <td>%d</td>\n  <td class="%s">%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  %s\n  <td>%s</td>\n</tr>',
+      as.integer(row$pair_id),
       status_class, status_text,
       .html_escape(img_label),
       diff_pct,
       diff_cnt,
-      reason,
+      .html_reason_cell(row),
       img_html
     )
   }, character(1))
@@ -288,7 +310,31 @@ batch_report <- function(object,
 }
 
 
-.format_diff_image <- function(path, embed, output_file = NULL, relative_paths = FALSE) {
+.html_reason_cell <- function(row) {
+  reason <- if ("reason" %in% names(row)) row$reason[[1]] else NA_character_
+  err <- .row_error(row)
+
+  label <- if (is.na(reason)) {
+    "-"
+  } else if (identical(reason, "missing")) {
+    "missing (no current image)"
+  } else {
+    .html_escape(reason)
+  }
+
+  # Missing rows already have a self-explanatory label
+  if (is.na(err) || identical(reason, "missing")) {
+    sprintf("<td>%s</td>", label)
+  } else {
+    err_html <- .html_escape(err)
+    sprintf('<td title="%s">%s<span class="error-msg">%s</span></td>',
+            err_html, label, err_html)
+  }
+}
+
+
+.format_diff_image <- function(path, embed, output_file = NULL, relative_paths = FALSE,
+                               windows = .Platform$OS.type == "windows") {
   if (is.na(path) || !file.exists(path)) {
     return('<span class="no-image">No diff</span>')
   }
@@ -298,34 +344,111 @@ batch_report <- function(object,
     b64 <- .base64_encode(raw_data)
     sprintf('<img class="diff-preview" src="data:image/png;base64,%s" alt="diff" />', b64)
   } else {
-    display_path <- if (relative_paths && !is.null(output_file)) {
-      .make_relative_path(path, output_file)
-    } else {
-      path
-    }
-    sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(display_path))
+    src <- .image_src(path, output_file, relative_paths, windows = windows)
+    sprintf('<img class="diff-preview" src="%s" alt="diff" />', .html_escape(src))
   }
 }
 
 
-.make_relative_path <- function(target_path, from_file) {
+# Internal: URL to use in an <img src> for a file on disk. Returns a
+# percent-encoded relative URL when requested and possible, otherwise a
+# file:// URI for the absolute path. The result still needs HTML escaping.
+.image_src <- function(path, output_file = NULL, relative_paths = FALSE,
+                       windows = .Platform$OS.type == "windows") {
+  if (relative_paths && !is.null(output_file)) {
+    rel <- .relative_path_or_na(path, output_file, windows = windows)
+    if (!is.na(rel)) {
+      return(.encode_url_path(rel))
+    }
+  }
+  .file_uri(normalizePath(path, mustWork = FALSE), windows = windows)
+}
+
+
+# Internal: percent-encode each "/"-separated segment of a path, keeping the
+# separators and "." / ".." segments as is.
+.encode_url_path <- function(path) {
+  path <- enc2utf8(as.character(path))
+  parts <- strsplit(path, "/", fixed = TRUE)[[1]]
+  if (length(parts) == 0) return(path)
+  enc <- vapply(parts, function(seg) {
+    if (seg %in% c("", ".", "..")) {
+      seg
+    } else {
+      utils::URLencode(seg, reserved = TRUE, repeated = TRUE)
+    }
+  }, character(1), USE.NAMES = FALSE)
+  out <- paste(enc, collapse = "/")
+  # strsplit() drops a trailing empty segment; restore a trailing slash
+  if (endsWith(path, "/") && !endsWith(out, "/")) out <- paste0(out, "/")
+  out
+}
+
+
+# Internal: convert an absolute file system path to a file:// URI.
+# `windows` selects Windows path semantics (backslashes as separators,
+# drive letters, UNC paths) so that the behaviour can be tested anywhere.
+.file_uri <- function(path, windows = .Platform$OS.type == "windows") {
+  path <- enc2utf8(as.character(path))
+  if (windows) {
+    path <- gsub("\\", "/", path, fixed = TRUE)
+
+    # UNC path: //server/share/dir/file -> file://server/share/dir/file
+    if (grepl("^//[^/]", path)) {
+      rest <- sub("^//", "", path)
+      host <- sub("/.*$", "", rest)
+      tail <- substring(rest, nchar(host) + 1)
+      return(paste0("file://", utils::URLencode(host, reserved = TRUE, repeated = TRUE),
+                    .encode_url_path(tail)))
+    }
+
+    # Drive letter: C:/dir/file -> file:///C:/dir/file
+    if (grepl("^[A-Za-z]:", path)) {
+      drive <- substr(path, 1, 2)
+      rest <- sub("^/+", "", substring(path, 3))
+      return(paste0("file:///", drive, "/", .encode_url_path(rest)))
+    }
+  }
+
+  if (!startsWith(path, "/")) path <- paste0("/", path)
+  paste0("file://", .encode_url_path(path))
+}
+
+
+.make_relative_path <- function(target_path, from_file,
+                                windows = .Platform$OS.type == "windows") {
+  rel <- .relative_path_or_na(target_path, from_file, windows = windows)
+  # On failure, return original path
+  if (is.na(rel)) target_path else rel
+}
+
+
+# Internal: relative path (with "/" separators) from the directory of
+# `from_file` to `target_path`, or NA if none can be built (e.g. different
+# drives on Windows). Components are compared case-insensitively on Windows.
+.relative_path_or_na <- function(target_path, from_file,
+                                 windows = .Platform$OS.type == "windows") {
   # normalizePath with mustWork=FALSE is safe here because we only call this
   # function when the target file exists (checked in .format_diff_image).
   # For from_file, we normalize the directory (which should exist) rather than
   # the file itself (which may not exist yet), to ensure consistent symlink
   # resolution on macOS where /var -> /private/var.
+  if (windows) {
+    target_path <- gsub("\\", "/", target_path, fixed = TRUE)
+    from_file <- gsub("\\", "/", from_file, fixed = TRUE)
+  }
   target_abs <- normalizePath(target_path, mustWork = FALSE)
   from_dir <- normalizePath(dirname(from_file), mustWork = FALSE)
 
-  # On failure, return original path
   tryCatch({
     # Normalize all paths to use forward slashes for consistent splitting.
     # On Windows, normalizePath() may return backslashes, but we want to split
     # consistently across platforms and output forward slashes for HTML.
-    target_abs <- gsub("\\\\", "/", target_abs)
-    from_dir <- gsub("\\\\", "/", from_dir)
+    if (windows) {
+      target_abs <- gsub("\\", "/", target_abs, fixed = TRUE)
+      from_dir <- gsub("\\", "/", from_dir, fixed = TRUE)
+    }
 
-    # Find common prefix and build relative path
     target_parts <- strsplit(target_abs, "/", fixed = TRUE)[[1]]
     from_parts <- strsplit(from_dir, "/", fixed = TRUE)[[1]]
 
@@ -333,27 +456,21 @@ batch_report <- function(object,
     target_parts <- target_parts[nzchar(target_parts)]
     from_parts <- from_parts[nzchar(from_parts)]
 
-    # If either path is empty after cleanup, return original
     if (length(target_parts) == 0 || length(from_parts) == 0) {
-      return(target_path)
+      return(NA_character_)
     }
 
-    # Find common prefix length
-    common_len <- 0
-    for (i in seq_len(min(length(target_parts), length(from_parts)))) {
-      if (target_parts[i] == from_parts[i]) {
-        common_len <- i
-      } else {
-        break
-      }
-    }
+    # Windows file systems (and drive letters) are case-insensitive
+    key <- if (windows) tolower else identity
+    n <- min(length(target_parts), length(from_parts))
+    same <- key(target_parts[seq_len(n)]) == key(from_parts[seq_len(n)])
+    common_len <- if (all(same)) n else which(!same)[1] - 1
 
-    # If no common prefix (e.g., different drives on Windows), return original
+    # If no common prefix (e.g., different drives on Windows), give up
     if (common_len == 0) {
-      return(target_path)
+      return(NA_character_)
     }
 
-    # Build relative path (use "/" for HTML, works on all platforms)
     ups <- length(from_parts) - common_len
     remaining <- if (common_len < length(target_parts)) {
       target_parts[(common_len + 1):length(target_parts)]
@@ -362,23 +479,24 @@ batch_report <- function(object,
     }
     rel_parts <- c(rep("..", ups), remaining)
 
-    # Handle case where result is empty (same directory)
     if (length(rel_parts) == 0) {
       return(".")
     }
 
     paste(rel_parts, collapse = "/")
-  }, error = function(e) target_path)
+  }, error = function(e) NA_character_)
 }
 
 
 .html_escape <- function(x) {
-  if (is.na(x)) return("")
+  x <- as.character(x)
+  na <- is.na(x)
   x <- gsub("&", "&amp;", x, fixed = TRUE)
   x <- gsub("<", "&lt;", x, fixed = TRUE)
   x <- gsub(">", "&gt;", x, fixed = TRUE)
   x <- gsub('"', "&quot;", x, fixed = TRUE)
-
+  x <- gsub("'", "&#39;", x, fixed = TRUE)
+  x[na] <- ""
   x
 }
 
@@ -392,29 +510,34 @@ batch_report <- function(object,
 }
 
 
+# Internal: RFC 4648 base64 encoding of a raw vector (vectorized, no
+# dependencies).
 .base64_encode <- function(raw_data) {
-  if (length(raw_data) == 0) return("")
-
-  b64_chars <- c(LETTERS, letters, 0:9, "+", "/")
-
   n <- length(raw_data)
-  padding <- (3 - n %% 3) %% 3
-  raw_data <- c(raw_data, rep(as.raw(0), padding))
+  if (n == 0) return("")
 
-  result <- character(length(raw_data) / 3 * 4)
-  j <- 1
-  for (i in seq(1, length(raw_data), 3)) {
-    chunk <- as.integer(raw_data[i:(i + 2)])
-    result[j]     <- b64_chars[(chunk[1] %/% 4) + 1]
-    result[j + 1] <- b64_chars[((chunk[1] %% 4) * 16 + chunk[2] %/% 16) + 1]
-    result[j + 2] <- b64_chars[((chunk[2] %% 16) * 4 + chunk[3] %/% 64) + 1]
-    result[j + 3] <- b64_chars[(chunk[3] %% 64) + 1]
-    j <- j + 4
-  }
+  alphabet <- charToRaw(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  )
+
+  padding <- (3 - n %% 3) %% 3
+  bytes <- as.integer(c(raw_data, as.raw(rep(0L, padding))))
+  m <- matrix(bytes, nrow = 3L)
+  b1 <- m[1L, ]
+  b2 <- m[2L, ]
+  b3 <- m[3L, ]
+
+  idx <- rbind(
+    b1 %/% 4L,
+    (b1 %% 4L) * 16L + b2 %/% 16L,
+    (b2 %% 16L) * 4L + b3 %/% 64L,
+    b3 %% 64L
+  )
+  out <- alphabet[as.vector(idx) + 1L]
 
   if (padding > 0) {
-    result[(length(result) - padding + 1):length(result)] <- "="
+    out[(length(out) - padding + 1L):length(out)] <- charToRaw("=")
   }
 
-  paste(result, collapse = "")
+  rawToChar(out)
 }
