@@ -698,13 +698,15 @@ test_that(".path_basename matches basename() semantics", {
 
 test_that(".format_thumbnail escapes special characters in paths", {
   root <- withr::local_tempdir()
-  d <- file.path(root, "a&b \"x\"")
+  # Characters that need escaping but are valid in file names on all OSes
+  d <- file.path(root, "a&b 'x'")
   dir.create(d)
-  p <- file.path(d, "<i>.png")
+  p <- file.path(d, "#i%.png")
   writeBin(as.raw(1:4), p)
   html <- odiffr:::.format_thumbnail(p, "Baseline", embed = FALSE)
-  expect_false(grepl("<i>", html, fixed = TRUE))
-  expect_true(grepl("a%26b%20%22x%22/%3Ci%3E.png", html, fixed = TRUE))
+  expect_false(grepl("a&b", html, fixed = TRUE))
+  expect_false(grepl("#i%", html, fixed = TRUE))
+  expect_true(grepl("a%26b%20%27x%27/%23i%25.png", html, fixed = TRUE))
 })
 
 test_that("batch_report images = 'all' works end-to-end with odiff", {
