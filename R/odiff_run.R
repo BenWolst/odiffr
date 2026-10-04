@@ -174,6 +174,12 @@ odiff_run <- function(img1, img2,
     diff_cols = diff_cols
   )
 
+  # odiff writes no diff image for matching images, layout differences or
+  # errors, so remove one left over from a previous run at the same path
+  if (!is.null(diff_output) && file.exists(diff_output)) {
+    unlink(diff_output)
+  }
+
   # Run odiff
   start_time <- Sys.time()
   result <- .run_odiff(odiff_path, args, timeout_secs)
@@ -190,6 +196,22 @@ odiff_run <- function(img1, img2,
   )
   if (!is.na(result$error)) {
     parsed$error <- result$error
+  }
+
+  # odiff < 4.5.0 reports differently sized images as a match unless
+  # --fail-on-layout is given; detect that case from the image headers
+  if (identical(parsed$reason, "match") && !isTRUE(fail_on_layout)) {
+    ver <- odiff_version()
+    if (is.na(ver) || utils::compareVersion(ver, "4.5.0") < 0) {
+      d1 <- .image_dimensions(img1)
+      d2 <- .image_dimensions(img2)
+      if (!is.null(d1) && !is.null(d2) && !identical(d1, d2)) {
+        parsed$match <- FALSE
+        parsed$reason <- "layout-diff"
+        parsed$diff_count <- NA_integer_
+        parsed$diff_percentage <- NA_real_
+      }
+    }
   }
 
   # Add additional info

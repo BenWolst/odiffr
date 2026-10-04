@@ -143,6 +143,10 @@ compare_pdfs <- function(baseline, current,
   ids <- seq_along(pages)
   in_base <- pages <= n_base
   in_curr <- pages <= n_curr
+
+  # Remove renders of absent pages left by a previous run in the same
+  # diff_dir, so they aren't shown as the current/baseline page
+  unlink(c(img1[!in_base], img2[!in_curr]))
   both <- which(in_base & in_curr)
 
   pairs_list <- lapply(both, function(i) list(img1 = img1[[i]], img2 = img2[[i]]))

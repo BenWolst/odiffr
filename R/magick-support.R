@@ -28,6 +28,10 @@
   if (!.is_magick_image(img)) {
     stop("Expected a magick-image object.", call. = FALSE)
   }
+  if (length(img) != 1) {
+    stop("magick-image objects must contain a single frame (this one has ",
+         length(img), "); select one with img[1].", call. = FALSE)
+  }
 
   # Create temp file with appropriate extension
   temp_file <- tempfile(fileext = paste0(".", format))

@@ -19,7 +19,8 @@ compare_images(
 \arguments{
 \item{img1}{Path to the first image, a magick-image object, or a plot:
 a ggplot object, a function of no arguments that draws a plot (base or
-grid graphics) when called, or a recorded plot
+grid graphics) or returns a ggplot, lattice or grid object when called,
+or a recorded plot
 (\code{\link[grDevices:recordPlot]{grDevices::recordPlot()}}).}
 
 \item{img2}{Path to the second image, a magick-image object, or a plot

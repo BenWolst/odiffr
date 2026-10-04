@@ -74,8 +74,8 @@ suited to continuous integration.
 Each \verb{<name>.new.png} is paired with \verb{<name>.png} in the same directory
 and compared with \code{\link[=compare_images_batch]{compare_images_batch()}}. The returned batch has an
 extra column \code{snapshot} with the snapshot's path relative to \code{path} (e.g.
-\code{"linux/plots/scatter.png"}). Reports label rows by the new file's name
-(e.g. \code{scatter.new.png}).
+\code{"linux/plots/scatter.png"}). Reports label rows by this relative
+snapshot path.
 
 A \code{.new.png} file without a baseline cannot be compared; it is reported
 with \code{reason = "error"} and the error "no baseline snapshot", so it is

@@ -41,8 +41,8 @@
 #' Each `<name>.new.png` is paired with `<name>.png` in the same directory
 #' and compared with [compare_images_batch()]. The returned batch has an
 #' extra column `snapshot` with the snapshot's path relative to `path` (e.g.
-#' `"linux/plots/scatter.png"`). Reports label rows by the new file's name
-#' (e.g. `scatter.new.png`).
+#' `"linux/plots/scatter.png"`). Reports label rows by this relative
+#' snapshot path.
 #'
 #' A `.new.png` file without a baseline cannot be compared; it is reported
 #' with `reason = "error"` and the error "no baseline snapshot", so it is

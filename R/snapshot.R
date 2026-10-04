@@ -9,7 +9,8 @@
 #' @param x The image to snapshot: a path to an image file (PNG; other
 #'   formats are converted to PNG with magick), a magick-image
 #'   object, a ggplot object, a function of no arguments that draws a plot
-#'   (base or grid graphics) when called, or a recorded plot
+#'   (base or grid graphics) or returns a ggplot, lattice or grid object when
+#'   called, or a recorded plot
 #'   ([grDevices::recordPlot()]). Plots are rendered to PNG using
 #'   `plot_options`.
 #' @param name Snapshot file name. A `.png` extension is added if missing.
@@ -314,7 +315,11 @@ compare_file_odiff <- function(threshold = 0.1,
     }
 
     if (isTRUE(result$match)) {
-      if (!is.null(diff_output)) unlink(diff_output)
+      if (!is.null(diff_output)) {
+        unlink(diff_output)
+        .remove_empty_dirs(dirname(diff_output),
+                           .resolve_snapshot_diff_dir(diff_dir))
+      }
       return(TRUE)
     }
 
@@ -489,6 +494,17 @@ odiff_preset <- function(name = c("strict", "default", "screenshot",
   if (is.null(name)) {
     expr_label <- paste(expr_label, collapse = "")
     if (is.character(x) && length(x) == 1 && !is.na(x) && nzchar(x)) {
+      # A temporary file gets a new random name on every run, so its
+      # snapshot would never be compared
+      in_tempdir <- startsWith(
+        normalizePath(dirname(x), winslash = "/", mustWork = FALSE),
+        normalizePath(tempdir(), winslash = "/", mustWork = FALSE)
+      )
+      if (in_tempdir) {
+        stop("`x` is a temporary file, whose name changes on every run. ",
+             "Supply `name`, e.g. expect_snapshot_image(path, name = ",
+             "\"my-plot.png\").", call. = FALSE)
+      }
       name <- basename(x)
     } else if (grepl("^[A-Za-z][A-Za-z0-9._]*$", expr_label)) {
       name <- expr_label
@@ -541,4 +557,19 @@ odiff_preset <- function(name = c("strict", "default", "screenshot",
          call. = FALSE)
   }
   path
+}
+
+
+# Internal: remove `dir` and its parents while they are empty, stopping at
+# (and never removing) `root`
+.remove_empty_dirs <- function(dir, root) {
+  if (is.null(root)) return(invisible(NULL))
+  root <- normalizePath(root, winslash = "/", mustWork = FALSE)
+  dir <- normalizePath(dir, winslash = "/", mustWork = FALSE)
+  while (startsWith(dir, paste0(root, "/")) && dir.exists(dir) &&
+         length(list.files(dir, all.files = TRUE, no.. = TRUE)) == 0) {
+    unlink(dir, recursive = TRUE)  # empty, checked above
+    dir <- dirname(dir)
+  }
+  invisible(NULL)
 }

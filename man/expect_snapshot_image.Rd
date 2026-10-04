@@ -22,7 +22,8 @@ expect_snapshot_image(
 \item{x}{The image to snapshot: a path to an image file (PNG; other
 formats are converted to PNG with magick), a magick-image
 object, a ggplot object, a function of no arguments that draws a plot
-(base or grid graphics) when called, or a recorded plot
+(base or grid graphics) or returns a ggplot, lattice or grid object when
+called, or a recorded plot
 (\code{\link[grDevices:recordPlot]{grDevices::recordPlot()}}). Plots are rendered to PNG using
 \code{plot_options}.}
 

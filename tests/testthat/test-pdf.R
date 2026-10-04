@@ -209,6 +209,8 @@ test_that("compare_pdfs() works with parallel = TRUE", {
 
 test_that("compare_pdfs() results work with summary and reports", {
   skip_if_no_pdf_support()
+  # On GitHub Actions batch_markdown() would append to the real job summary
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
   pdf1 <- make_test_pdf(3)
   pdf2 <- make_test_pdf(4, changed = 2)
   diff_dir <- withr::local_tempdir()

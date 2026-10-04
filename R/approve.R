@@ -89,6 +89,11 @@ approve_changes <- function(object,
     stop("object must be an odiffr_batch (from compare_image_dirs() or ",
          "compare_images_batch()).", call. = FALSE)
   }
+  if ("page" %in% names(object)) {
+    stop("approve_changes() does not support compare_pdfs() results: their ",
+         "images are rendered pages, not the PDF files. Replace the baseline ",
+         "PDFs directly instead.", call. = FALSE)
+  }
   required <- c("pair_id", "reason", "img1", "img2")
   if (!all(required %in% names(object))) {
     stop("object must have columns: ", paste(required, collapse = ", "),
@@ -173,6 +178,22 @@ approve_changes <- function(object,
       "Skipping %d pair(s) whose images are not files (e.g. <magick-image>).",
       n_label
     ))
+  }
+
+  # A baseline selected by several rows would be overwritten (and backed up)
+  # more than once, losing the original; refuse to guess which one wins
+  act_rows <- base::which(!is.na(op))
+  if (length(act_rows) > 1) {
+    keys <- normalizePath(actions$baseline[act_rows], mustWork = FALSE)
+    dup <- act_rows[keys %in% keys[duplicated(keys)]]
+    if (length(dup) > 0) {
+      op[dup] <- NA_character_
+      actions$action[dup] <- "failed"
+      actions$detail[dup] <- paste(
+        "baseline selected by more than one pair; approve them separately",
+        "with `which`"
+      )
+    }
   }
 
   # Backup locations for rows that will be modified
