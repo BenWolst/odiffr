@@ -17,6 +17,7 @@ compare_dirs_report(
   relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
+  images = c("diff", "all"),
   ...
 )
 ```
@@ -70,6 +71,13 @@ compare_dirs_report(
 
   Logical; if `TRUE`, show all comparisons in the report, not just
   failures.
+
+- images:
+
+  Which images to show in the report: `"diff"` (default) for the diff
+  image only, or `"all"` for baseline, current and diff images side by
+  side. See
+  [`batch_report()`](https://benwolst.github.io/odiffr/reference/batch_report.md).
 
 - ...:
 

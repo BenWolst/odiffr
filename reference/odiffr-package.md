@@ -9,7 +9,17 @@ quality assurance, and validated environments.
 - [`compare_images()`](https://benwolst.github.io/odiffr/reference/compare_images.md):
 
   High-level image comparison returning a tibble/data.frame. Accepts
-  file paths or magick-image objects.
+  file paths, magick-image objects and plots.
+
+- [`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md),
+  [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.md):
+
+  Compare many image pairs or two directories of images.
+
+- [`compare_pdfs()`](https://benwolst.github.io/odiffr/reference/compare_pdfs.md),
+  [`compare_pdf_dirs()`](https://benwolst.github.io/odiffr/reference/compare_pdf_dirs.md):
+
+  Compare PDF files page by page.
 
 - [`odiff_run()`](https://benwolst.github.io/odiffr/reference/odiff_run.md):
 
@@ -20,7 +30,58 @@ quality assurance, and validated environments.
 
   Helper to create ignore region specifications.
 
+## Testing
+
+- [`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.md),
+  [`expect_images_differ()`](https://benwolst.github.io/odiffr/reference/expect_images.md):
+
+  testthat expectations for images and plots.
+
+- [`expect_snapshot_image()`](https://benwolst.github.io/odiffr/reference/expect_snapshot_image.md):
+
+  testthat snapshot expectation compared with odiff.
+
+- [`compare_file_odiff()`](https://benwolst.github.io/odiffr/reference/compare_file_odiff.md),
+  [`odiff_preset()`](https://benwolst.github.io/odiffr/reference/odiff_preset.md):
+
+  Compare function and presets for
+  [`testthat::expect_snapshot_file()`](https://testthat.r-lib.org/reference/expect_snapshot_file.html)
+  and 'shinytest2' screenshots.
+
+## Reviewing and Reporting
+
+- [`batch_report()`](https://benwolst.github.io/odiffr/reference/batch_report.md),
+  [`batch_markdown()`](https://benwolst.github.io/odiffr/reference/batch_markdown.md),
+  [`batch_junit()`](https://benwolst.github.io/odiffr/reference/batch_junit.md):
+
+  HTML, Markdown and JUnit reports of batch results.
+
+- [`snapshot_report()`](https://benwolst.github.io/odiffr/reference/snapshot_report.md):
+
+  Report of changed image snapshots.
+
+- [`use_odiffr_ci()`](https://benwolst.github.io/odiffr/reference/use_odiffr_ci.md):
+
+  Add a GitHub Actions workflow for visual tests.
+
+- [`approve_changes()`](https://benwolst.github.io/odiffr/reference/approve_changes.md):
+
+  Accept current images as new baselines.
+
+- [`diff_image()`](https://benwolst.github.io/odiffr/reference/diff_image.md),
+  [`plot.odiff_result()`](https://benwolst.github.io/odiffr/reference/plot.odiff_result.md):
+
+  View diff images.
+
+- [`audit_record()`](https://benwolst.github.io/odiffr/reference/audit_record.md):
+
+  Machine-readable record of comparisons.
+
 ## Binary Management
+
+- [`install_odiff()`](https://benwolst.github.io/odiffr/reference/install_odiff.md):
+
+  Download Odiff to the user cache (no Node.js needed).
 
 - [`find_odiff()`](https://benwolst.github.io/odiffr/reference/find_odiff.md):
 
@@ -60,13 +121,16 @@ The package searches for the Odiff binary in this order:
 2.  System PATH (`Sys.which("odiff")`)
 
 3.  Cached binary from
+    [`install_odiff()`](https://benwolst.github.io/odiffr/reference/install_odiff.md)
+    or
     [`odiffr_update()`](https://benwolst.github.io/odiffr/reference/odiffr_update.md)
 
 ## Supported Image Formats
 
 - Input:
 
-  PNG, JPEG, WEBP, TIFF (cross-format comparison supported)
+  PNG, JPEG, WEBP, TIFF (`.tiff`; `.tif` is not accepted by odiff) and
+  BMP. Cross-format comparison is supported.
 
 - Output:
 
@@ -85,6 +149,10 @@ The package searches for the Odiff binary in this order:
 - 22:
 
   Pixel differences found
+
+- 1:
+
+  Error (e.g. an image could not be read)
 
 ## For Validated Environments
 
@@ -114,6 +182,8 @@ Ben Wolstenholme
 
 Useful links:
 
+- <https://benwolst.github.io/odiffr/>
+
 - <https://github.com/BenWolst/odiffr>
 
 - Report bugs at <https://github.com/BenWolst/odiffr/issues>
@@ -121,3 +191,7 @@ Useful links:
 ## Author
 
 **Maintainer**: Ben Wolstenholme <odiffr@benwolst.dev>
+
+Authors:
+
+- Ben Wolstenholme <odiffr@benwolst.dev>

@@ -32,6 +32,12 @@ A list with components:
 
   Source of the binary (option, system, cached)
 
+- shim:
+
+  Path of the npm launcher script found on the PATH that `path` was
+  resolved from, or `NA` if the binary is used directly. See
+  [`find_odiff()`](https://benwolst.github.io/odiffr/reference/find_odiff.md).
+
 ## Examples
 
 ``` r

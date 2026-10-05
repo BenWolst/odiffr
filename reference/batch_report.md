@@ -15,6 +15,7 @@ batch_report(
   relative_paths = FALSE,
   n_worst = 10,
   show_all = FALSE,
+  images = c("diff", "all"),
   ...
 )
 ```
@@ -31,7 +32,8 @@ batch_report(
 - output_file:
 
   Path to write the HTML file. If NULL, returns HTML as a character
-  string.
+  string. The file is written as UTF-8 and its parent directory is
+  created if it does not exist.
 
 - title:
 
@@ -40,14 +42,17 @@ batch_report(
 - embed:
 
   If TRUE, embed diff images as base64 data URIs for a fully
-  self-contained file. If FALSE (default), link to image files on disk.
+  self-contained file. If FALSE (default), link to image files on disk
+  using `file://` URIs.
 
 - relative_paths:
 
   If TRUE and `output_file` is specified, use paths relative to the
   report location for image `src` attributes. This makes reports
-  portable without embedding. Ignored when `embed = TRUE`. Default:
-  FALSE.
+  portable without embedding. Paths are percent-encoded so that file
+  names containing spaces, `#`, `?` or `%` work. If no relative path can
+  be built (e.g. different drives on Windows), a `file://` URI is used
+  instead. Ignored when `embed = TRUE`. Default: FALSE.
 
 - n_worst:
 
@@ -56,6 +61,14 @@ batch_report(
 - show_all:
 
   If TRUE, include a table of all comparisons. Default: FALSE.
+
+- images:
+
+  Which images to show for each comparison: `"diff"` (default) shows
+  only the diff image; `"all"` shows the baseline (`img1`), current
+  (`img2`) and diff images side by side, each with a caption. Clicking a
+  thumbnail shows the full-size image (a link to the file for linked
+  reports, an in-page zoom for embedded ones).
 
 - ...:
 
@@ -79,6 +92,20 @@ or
 Comparisons without diff images will show "No diff" in the preview
 column.
 
+With `images = "all"`, baseline and current images are linked or
+embedded in the same way as diff images (`embed`, `relative_paths`).
+Embedded images get a MIME type based on their file extension (PNG,
+JPEG, WebP, BMP or TIFF; note that most browsers cannot display TIFF).
+Images that are not files on disk (for example `"<magick-image>"`
+inputs) or that no longer exist are shown as a placeholder. The report
+stays a single HTML file with inline CSS and no JavaScript.
+
+Failures without pixel statistics (layout differences, errors, or
+baseline images with no current counterpart) show "-" for the diff
+percentage and pixel count. If the results contain an `error` column,
+its message is shown in the Reason column. An empty batch produces a
+valid report with a pass rate of "-".
+
 ## See also
 
 [`compare_images_batch()`](https://benwolst.github.io/odiffr/reference/compare_images_batch.md),
@@ -96,6 +123,9 @@ batch_report(results, output_file = "report.html")
 
 # Self-contained report with embedded images
 batch_report(results, output_file = "report.html", embed = TRUE)
+
+# Baseline, current and diff images side by side
+batch_report(results, output_file = "report.html", images = "all")
 
 # Get HTML as string
 html <- batch_report(results)

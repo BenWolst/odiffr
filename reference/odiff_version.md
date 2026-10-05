@@ -1,6 +1,8 @@
 # Get odiff Version
 
-Get odiff Version
+The version is cached per binary: repeated calls do not spawn
+`odiff --version` again unless the binary path (or the file itself)
+changes.
 
 ## Usage
 

@@ -27,7 +27,10 @@ compare_images_batch(pairs, diff_dir = NULL, parallel = FALSE, ...)
   cores. Uses
   [`parallel::mclapply`](https://rdrr.io/r/parallel/mclapply.html) on
   Unix systems (macOS, Linux) and falls back to sequential processing on
-  Windows. Default is `FALSE`.
+  Windows. Default is `FALSE`. The number of cores is taken from
+  `getOption("mc.cores")` (or detected), capped at the number of pairs,
+  and limited to 2 when the `_R_CHECK_LIMIT_CORES_` environment variable
+  is `"TRUE"`/`"true"` or `"warn"` (as during `R CMD check --as-cran`).
 
 - ...:
 
@@ -39,9 +42,18 @@ compare_images_batch(pairs, diff_dir = NULL, parallel = FALSE, ...)
 A tibble (if available) or data.frame with class `odiffr_batch`,
 containing one row per comparison with all columns from
 [`compare_images()`](https://benwolst.github.io/odiffr/reference/compare_images.md)
-plus a `pair_id` column. Use
+(including `error`) plus a leading `pair_id` column. Use
 [`summary()`](https://rdrr.io/r/base/summary.html) to get aggregate
-statistics.
+statistics. If `pairs` is empty (a zero-row data.frame or an empty
+list), an empty `odiffr_batch` with the same columns is returned.
+
+## Details
+
+A failure while comparing one pair (for example, a file that does not
+exist, cannot be read, or has an unsupported format) does not abort the
+batch. Instead, that pair is reported as a row with `match = FALSE`,
+`reason = "error"`, and the error message in the `error` column. The
+same applies to failed worker processes when `parallel = TRUE`.
 
 ## See also
 
@@ -68,5 +80,8 @@ results <- compare_images_batch(pairs, parallel = TRUE)
 
 # Check which comparisons failed
 results[!results$match, ]
+
+# Inspect errors (e.g. unreadable or missing files)
+results[results$reason == "error", c("img1", "img2", "error")]
 } # }
 ```

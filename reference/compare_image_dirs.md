@@ -10,7 +10,7 @@ subdirectories when `recursive = TRUE`).
 compare_image_dirs(
   baseline_dir,
   current_dir,
-  pattern = "\\.(png|jpe?g|webp|tiff?)$",
+  pattern = "\\.(png|jpe?g|webp|tiff|bmp)$",
   recursive = FALSE,
   diff_dir = NULL,
   parallel = FALSE,
@@ -31,8 +31,11 @@ compare_image_dirs(
 
 - pattern:
 
-  Regular expression pattern to match image files. Default matches
-  common image formats (PNG, JPEG, WEBP, TIFF).
+  Regular expression pattern to match image files (matched
+  case-insensitively). The default matches the file extensions accepted
+  by odiff: `.png`, `.jpg`, `.jpeg`, `.webp`, `.tiff` and `.bmp`. Note
+  that odiff does not accept the `.tif` extension; such files matched by
+  a custom pattern are reported with `reason = "error"`.
 
 - recursive:
 
@@ -56,10 +59,11 @@ compare_image_dirs(
 
 ## Value
 
-A tibble (if available) or data.frame with one row per comparison,
-containing all columns from
+A tibble (if available) or data.frame with class `odiffr_batch`, with
+one row per baseline image (in baseline file order), containing all
+columns from
 [`compare_images()`](https://benwolst.github.io/odiffr/reference/compare_images.md)
-plus a `pair_id` column.
+(including `error`) plus a leading `pair_id` column.
 
 ## Details
 
@@ -67,10 +71,17 @@ The baseline directory is the source of truth. For each image found in
 `baseline_dir` matching `pattern`:
 
 - If a corresponding file exists in `current_dir` (same relative path),
-  it is included in the comparison.
+  the two images are compared.
 
 - If the file is missing from `current_dir`, a warning is issued and the
-  file is excluded from results.
+  file is included in the results as a failed row with `match = FALSE`,
+  `reason = "missing"`, `NA` diff statistics and `diff_output`, `img2`
+  set to the expected (nonexistent) path, and an explanatory `error`
+  message. This ensures that a disappearing screenshot fails the
+  comparison. If every file is missing, all rows are `"missing"`.
+
+An error is raised if `baseline_dir` contains no images matching
+`pattern`.
 
 Files that exist only in `current_dir` (not in `baseline_dir`) are not
 compared, but a message is emitted noting how many such files were
@@ -101,7 +112,7 @@ results <- compare_image_dirs(
   diff_dir = "diffs/"
 )
 
-# Check which comparisons failed
+# Check which comparisons failed (including missing files)
 results[!results$match, ]
 } # }
 ```

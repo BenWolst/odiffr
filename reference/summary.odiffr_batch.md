@@ -53,7 +53,8 @@ An `odiffr_batch_summary` object with the following components:
 
 - pass_rate:
 
-  Proportion of passing comparisons (0 to 1).
+  Proportion of passing comparisons (0 to 1), or `NA` for an empty batch
+  (zero comparisons).
 
 - reason_counts:
 
@@ -66,8 +67,10 @@ An `odiffr_batch_summary` object with the following components:
 
 - worst:
 
-  Data frame of worst offenders by diff percentage (NULL if no
-  failures).
+  Data frame of worst offenders, ordered by diff percentage
+  (descending). Failures without a diff percentage (e.g. layout
+  differences, errors, or missing files) are listed after those with
+  one. NULL if no failures.
 
 ## Details
 

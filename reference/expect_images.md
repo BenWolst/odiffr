@@ -41,7 +41,7 @@ expect_images_differ(
 
 - threshold:
 
-  Numeric; color difference threshold between 0.0 and 1.0. Default is
+  Numeric; colour difference threshold between 0.0 and 1.0. Default is
   0.1.
 
 - antialiasing:
@@ -83,8 +83,8 @@ expect_images_differ(
 ## Value
 
 Invisibly returns the comparison result (a data.frame/tibble with match,
-reason, diff_count, diff_percentage, etc.), allowing further inspection
-if needed.
+reason, diff_count, diff_percentage, error, etc.), allowing further
+inspection if needed.
 
 ## Details
 
@@ -92,11 +92,27 @@ if needed.
 (within the specified threshold). On failure, a diff image is saved to
 `tests/testthat/_odiffr/` by default, which can be controlled via
 `options(odiffr.save_diff = FALSE)` or
-`options(odiffr.diff_dir = "path")`.
+`options(odiffr.diff_dir = "path")`. Diff file names are deterministic,
+so re-running a failing test overwrites the previous diff rather than
+accumulating files: for file paths the name is
+`<actual>_vs_<expected>.png` (basenames without extension); for
+magick-image objects it is built from the `label`/expressions passed
+(e.g. `img_new_vs_img_old.png`). If two different comparisons in the
+same session would produce the same name (e.g. identical basenames in
+different directories), the parent directory names, or else a numeric
+suffix, are added. A stale diff image left by a previous failing run is
+removed when the expectation is run again (odiff writes no diff image
+when the images match).
 
 `expect_images_differ()` asserts that two images are visually different.
 No diff image is saved since there's nothing to debug when images match
 unexpectedly.
+
+If odiff cannot compare the images (`reason == "error"`, e.g. a file
+that cannot be loaded or has an unsupported format), both expectations
+fail and the failure message includes odiff's error message. In
+particular, an error does not count as the images differing for
+`expect_images_differ()`.
 
 Both expectations will skip (not fail) if the odiff binary is not
 available, making tests portable across environments.
