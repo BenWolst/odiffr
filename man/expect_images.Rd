@@ -92,7 +92,9 @@ no diff image is kept for it.
 
 \code{expect_images_differ()} asserts that two images are visually different.
 No diff image is saved since there's nothing to debug when images match
-unexpectedly.
+unexpectedly. It also accepts \code{max_diff_percent} and \code{max_diff_pixels}
+(through \code{...}), and then requires the images to differ by more than
+the tolerance.
 
 If odiff cannot compare the images (\code{reason == "error"}, e.g. a file that
 cannot be loaded or has an unsupported format), both expectations fail and

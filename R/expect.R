@@ -34,7 +34,9 @@
 #'
 #' `expect_images_differ()` asserts that two images are visually different.
 #' No diff image is saved since there's nothing to debug when images match
-#' unexpectedly.
+#' unexpectedly. It also accepts `max_diff_percent` and `max_diff_pixels`
+#' (through `...`), and then requires the images to differ by more than
+#' the tolerance.
 #'
 #' If odiff cannot compare the images (`reason == "error"`, e.g. a file that
 #' cannot be loaded or has an unsupported format), both expectations fail and
@@ -177,6 +179,7 @@ expect_images_match <- function(actual,
   # A pass within tolerance leaves no diff image behind
   if (identical(result$reason, "within-tolerance") && !is.null(diff_output)) {
     unlink(diff_output)
+    result$diff_output <- NA_character_
   }
 
   # Use testthat::expect() - the modern pattern
@@ -230,7 +233,13 @@ expect_images_differ <- function(img1,
     return(invisible(result))
   }
 
-  msg <- sprintf("`%s` unexpectedly matches `%s`.", lab1, lab2)
+  msg <- if (identical(result$reason, "within-tolerance")) {
+    sprintf("`%s` differs from `%s` only within the tolerance (%s px, %s).",
+            lab1, lab2, .fmt_count(result$diff_count),
+            .fmt_pct(result$diff_percentage))
+  } else {
+    sprintf("`%s` unexpectedly matches `%s`.", lab1, lab2)
+  }
 
   testthat::expect(!result$match, msg, info = info)
 

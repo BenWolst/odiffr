@@ -211,7 +211,7 @@ test_that("expect_images_differ() fails for a difference within tolerance", {
 
   expect_success(expect_images_differ(img1, img2))
   expect_failure(expect_images_differ(img1, img2, max_diff_pixels = 1),
-                 "unexpectedly matches")
+                 "differs from `img2` only within the tolerance \\(1 px")
 })
 
 # testthat helpers -------------------------------------------------------------
@@ -260,4 +260,85 @@ test_that("compare_file_odiff() returns TRUE within tolerance", {
 test_that("compare_file_odiff() validates the tolerance when created", {
   expect_error(compare_file_odiff(max_diff_percent = -1), "max_diff_percent")
   expect_error(compare_file_odiff(max_diff_pixels = 0.5), "max_diff_pixels")
+})
+
+# Final review fixes and coverage ---------------------------------------------
+
+test_that("expect_images_match() does not return a deleted diff path", {
+  skip_if_no_odiff()
+  withr::local_options(odiffr.diff_dir = withr::local_tempdir())
+  img1 <- create_test_image(1000, 1000, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  res <- expect_images_match(img2, img1, max_diff_pixels = 1)
+  expect_identical(res$diff_output, NA_character_)
+})
+
+test_that("batch_report() and batch_junit() show passes within tolerance", {
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
+  batch <- make_batch(match = c(TRUE, TRUE),
+                      reason = c("match", "within-tolerance"),
+                      diff_count = c(0L, 5L), diff_percentage = c(0, 0.05))
+
+  html <- batch_report(batch)
+  expect_match(html, "Within tolerance: 1 (counted as passed)", fixed = TRUE)
+  html <- batch_report(batch, show_all = TRUE)
+  expect_match(html, "within-tolerance", fixed = TRUE)
+  expect_false(grepl("Within tolerance",
+                     batch_report(make_batch(match = TRUE, reason = "match")),
+                     fixed = TRUE))
+
+  skip_if_not_installed("xml2")
+  doc <- xml2::read_xml(batch_junit(batch))
+  suite <- xml2::xml_find_first(doc, "//testsuite")
+  expect_equal(xml2::xml_attr(suite, "failures"), "0")
+  expect_length(xml2::xml_find_all(doc, "//failure"), 0)
+})
+
+test_that("the tolerance reaches compare_pdfs() and compare_pdf_dirs()", {
+  skip_if_no_odiff()
+  skip_if_not_installed("pdftools")
+  root <- withr::local_tempdir()
+  base_dir <- file.path(root, "base")
+  cur_dir <- file.path(root, "cur")
+  dir.create(base_dir)
+  dir.create(cur_dir)
+  make_page <- function(path, changed) {
+    grDevices::pdf(path, width = 3, height = 3)
+    graphics::plot(1:10)
+    if (changed) graphics::points(5, 5, pch = 19, col = "red")
+    grDevices::dev.off()
+    path
+  }
+  base <- make_page(file.path(base_dir, "a.pdf"), FALSE)
+  cur <- make_page(file.path(cur_dir, "a.pdf"), TRUE)
+
+  expect_equal(compare_pdfs(base, cur)$reason, "pixel-diff")
+  res <- compare_pdfs(base, cur, max_diff_percent = 100)
+  expect_equal(res$reason, "within-tolerance")
+  expect_true(res$match)
+
+  res <- compare_pdf_dirs(base_dir, cur_dir, max_diff_percent = 100)
+  expect_equal(res$reason, "within-tolerance")
+})
+
+test_that("the tolerance reaches snapshot_report()", {
+  skip_if_no_odiff()
+  skip_if_not_installed("png")
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
+  snaps <- file.path(withr::local_tempdir(), "_snaps", "plots")
+  dir.create(snaps, recursive = TRUE)
+  base <- create_test_image(100, 100, "red")
+  new <- create_modified_image(base, "pixel")
+  on.exit(unlink(c(base, new)), add = TRUE)
+  file.copy(base, file.path(snaps, "p.png"))
+  file.copy(new, file.path(snaps, "p.new.png"))
+
+  batch <- snapshot_report(dirname(snaps), format = "markdown")
+  expect_equal(batch$reason, "pixel-diff")
+  batch <- snapshot_report(dirname(snaps), format = "markdown",
+                           max_diff_pixels = 1)
+  expect_equal(batch$reason, "within-tolerance")
+  expect_true(batch$match)
 })
