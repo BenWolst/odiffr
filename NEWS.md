@@ -16,6 +16,9 @@
   size check up to odiff 4.5.0).
 * On odiff < 4.3.5, a PNG and an image in another format with the same
   dimensions are no longer reported as a layout difference.
+* Percentages in messages, summaries and reports are no longer rounded to
+  0% when some pixels (or comparisons) differ, or to 100% when not all do.
+  They are shown as, for example, `<0.01%` and `>99.9%`.
 
 # odiffr 0.6.0
 

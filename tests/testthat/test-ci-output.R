@@ -240,3 +240,20 @@ test_that("CI outputs work with real compare_image_dirs() results", {
   expect_match(md, "| 1 | changed.png | pixel-diff | 100.00% | 400 |", fixed = TRUE)
   expect_match(md, "gone.png | missing (no current image)", fixed = TRUE)
 })
+
+test_that("batch_markdown and batch_junit show tiny percentages as <0.01%", {
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
+  batch <- make_batch(match = c(FALSE, rep(TRUE, 1999)),
+                      reason = c("pixel-diff", rep("match", 1999)),
+                      diff_count = c(15L, rep(0L, 1999)),
+                      diff_percentage = c(0.0015, rep(0, 1999)))
+  md <- batch_markdown(batch)
+  expect_match(md, "| pixel-diff | &lt;0.01% | 15 |", fixed = TRUE)
+  expect_match(md, "(1999 passed, &gt;99.9% pass rate)", fixed = TRUE)
+
+  skip_if_not_installed("xml2")
+  doc <- xml2::read_xml(batch_junit(batch))
+  failure <- xml2::xml_find_first(doc, "//failure")
+  expect_equal(xml2::xml_attr(failure, "message"),
+               "pixel-diff: <0.01% (15 pixels)")
+})

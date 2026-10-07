@@ -328,7 +328,7 @@ print.odiff_result <- function(x, ...) {
     cat("Diff count:", x$diff_count, "pixels\n")
   }
   if (!is.na(x$diff_percentage)) {
-    cat("Diff %:    ", sprintf("%.4f%%", x$diff_percentage), "\n")
+    cat("Diff %:    ", .fmt_pct(x$diff_percentage, 4), "\n")
   }
   if (!is.null(x$error) && !is.na(x$error)) {
     cat("Error:     ", x$error, "\n")

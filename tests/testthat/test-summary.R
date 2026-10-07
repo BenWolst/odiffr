@@ -487,6 +487,25 @@ test_that(".fmt_pct and .fmt_count handle NA", {
   expect_equal(odiffr:::.fmt_count(c(100000, NA)), c("100000", "-"))
 })
 
+test_that(".fmt_pct does not round nonzero values to 0 or partial values to 100", {
+  expect_equal(
+    odiffr:::.fmt_pct(c(0, 0.0015, 0.004, 0.006, 50, 99.996, 100)),
+    c("0.00%", "<0.01%", "<0.01%", "0.01%", "50.00%", ">99.99%", "100.00%")
+  )
+  expect_equal(odiffr:::.fmt_pct(c(0.04, 99.96), 1), c("<0.1%", ">99.9%"))
+  expect_equal(odiffr:::.fmt_pct(1e-6, 4), "<0.0001%")
+})
+
+test_that("print.odiffr_summary shows tiny diff statistics as <0.01%", {
+  batch <- make_batch(match = c(FALSE, FALSE),
+                      reason = c("pixel-diff", "pixel-diff"),
+                      diff_count = c(15L, 500L),
+                      diff_percentage = c(0.0015, 5))
+  out <- capture.output(print(summary(batch)))
+  expect_true(any(grepl("Min:    <0.01%", out, fixed = TRUE)))
+  expect_true(any(grepl("Max:    5.00%", out, fixed = TRUE)))
+})
+
 test_that(".row_label() prefers the snapshot column", {
   row <- data.frame(pair_id = 1L, img1 = "_snaps/linux/plots/var.png",
                     img2 = "_snaps/linux/plots/var.new.png",

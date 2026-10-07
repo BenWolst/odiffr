@@ -471,8 +471,8 @@ odiff_preset <- function(name = c("strict", "default", "screenshot",
 .snapshot_failure_message <- function(result, old, diff_output) {
   what <- if (identical(result$reason, "pixel-diff") &&
                 !is.na(result$diff_percentage)) {
-    sprintf("%s%% pixels differ (%s px)",
-            format(round(result$diff_percentage, 2), nsmall = 2),
+    sprintf("%s pixels differ (%s px)",
+            .fmt_pct(result$diff_percentage),
             format(result$diff_count, big.mark = ","))
   } else if (identical(result$reason, "layout-diff")) {
     "image dimensions differ"

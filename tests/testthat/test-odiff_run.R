@@ -682,3 +682,13 @@ test_that("odiff_run accepts timeouts larger than an integer", {
   expect_true(result$match)
   expect_identical(result$error, NA_character_)
 })
+
+test_that("print.odiff_result does not show a tiny difference as 0%", {
+  result <- structure(
+    list(match = FALSE, reason = "pixel-diff", diff_count = 1L,
+         diff_percentage = 1e-6, error = NA_character_, diff_output = NULL,
+         duration = 0.1),
+    class = "odiff_result"
+  )
+  expect_output(print(result), "Diff %:     <0.0001%", fixed = TRUE)
+})
