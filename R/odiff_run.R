@@ -82,8 +82,13 @@
 #' unsupported CPUs is determined by odiff itself.
 #'
 #' odiff is always invoked with `--parsable-stdout`, and its machine-readable
-#' output is parsed to fill `diff_count`, `diff_percentage`, `diff_lines` and
-#' `diff_cols`.
+#' output is parsed to fill `diff_count`, `diff_lines` and `diff_cols`.
+#' `diff_percentage` is computed from `diff_count` and the image dimensions,
+#' since odiff rounds it to 2 decimal places.
+#'
+#' With `fail_on_layout = FALSE`, odiff < 4.3.5 compares only the area that
+#' differently sized images share, so odiffr reports such comparisons as
+#' `"layout-diff"`.
 #'
 #' @seealso [compare_images()] for a higher-level interface,
 #'   [ignore_region()] for creating ignore regions.

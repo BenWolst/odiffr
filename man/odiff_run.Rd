@@ -121,8 +121,13 @@ For odiff < 4.1.1, odiffr ignores \code{enable_asm} with a warning. Behaviour on
 unsupported CPUs is determined by odiff itself.
 
 odiff is always invoked with \code{--parsable-stdout}, and its machine-readable
-output is parsed to fill \code{diff_count}, \code{diff_percentage}, \code{diff_lines} and
-\code{diff_cols}.
+output is parsed to fill \code{diff_count}, \code{diff_lines} and \code{diff_cols}.
+\code{diff_percentage} is computed from \code{diff_count} and the image dimensions,
+since odiff rounds it to 2 decimal places.
+
+With \code{fail_on_layout = FALSE}, odiff < 4.3.5 compares only the area that
+differently sized images share, so odiffr reports such comparisons as
+\code{"layout-diff"}.
 }
 \examples{
 \dontrun{

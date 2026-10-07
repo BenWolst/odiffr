@@ -664,8 +664,9 @@ test_that("odiff_run with a real odiff < 4.3.5 binary reports layout-diff", {
                "layout-diff")
 
   # A larger img2 that also differs inside the overlap
-  tall <- create_modified_image(create_test_image(100, 120, "red"), "pixel")
-  on.exit(unlink(tall), add = TRUE)
+  tall_base <- create_test_image(100, 120, "red")
+  tall <- create_modified_image(tall_base, "pixel")
+  on.exit(unlink(c(tall_base, tall)), add = TRUE)
   result <- odiff_run(small, tall)
   expect_equal(result$exit_code, 22L)  # odiff reports a tiny pixel diff
   expect_equal(result$reason, "layout-diff")
