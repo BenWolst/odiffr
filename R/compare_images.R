@@ -19,8 +19,12 @@
 #'   Default is 0.1.
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE`.
-#' @param fail_on_layout Logical; if `TRUE`, fail if images have different
-#'   dimensions. Default is `FALSE`.
+#' @param fail_on_layout Logical; if `TRUE`, fail immediately if images have
+#'   different dimensions. Default is `FALSE`.
+#'   Images of different dimensions never match and are reported as
+#'   `"layout-diff"` either way; `TRUE` stops odiff at the size check,
+#'   while `FALSE` also gives pixel counts and a diff image where odiff
+#'   can (odiff >= 4.3.5).
 #' @param ignore_regions List of regions to ignore during comparison.
 #'   Use [ignore_region()] to create regions, or pass a data.frame with
 #'   columns `x1`, `y1`, `x2`, `y2`.

@@ -40,7 +40,11 @@ Lower values are more precise. Default is 0.1.}
 Default is \code{FALSE}.}
 
 \item{fail_on_layout}{Logical; if \code{TRUE}, fail immediately if images have
-different dimensions. Default is \code{FALSE}.}
+different dimensions. Default is \code{FALSE}.
+Images of different dimensions never match and are reported as
+\code{"layout-diff"} either way; \code{TRUE} stops odiff at the size check,
+while \code{FALSE} also gives pixel counts and a diff image where odiff
+can (odiff >= 4.3.5).}
 
 \item{diff_mask}{Logical; if \code{TRUE}, output only the changed pixels in the
 diff image. Default is \code{FALSE}.}
@@ -86,7 +90,8 @@ A list with the following components:
 \item{reason}{Character; one of \code{"match"}, \code{"pixel-diff"},
 \code{"layout-diff"}, or \code{"error"}.}
 \item{diff_count}{Integer; number of different pixels (\code{0} for a
-match), or \code{NA} if unknown (layout difference or error).}
+match), or \code{NA} if unknown (an error, or a layout difference that
+odiff did not count; see \code{fail_on_layout}).}
 \item{diff_percentage}{Numeric; percentage of different pixels (\code{0} for
 a match), or \code{NA} if unknown.}
 \item{diff_lines}{Integer vector of line numbers with differences,
@@ -125,9 +130,11 @@ output is parsed to fill \code{diff_count}, \code{diff_lines} and \code{diff_col
 \code{diff_percentage} is computed from \code{diff_count} and the image dimensions,
 since odiff rounds it to 2 decimal places.
 
-With \code{fail_on_layout = FALSE}, odiff < 4.3.5 compares only the area that
-differently sized images share, so odiffr reports such comparisons as
-\code{"layout-diff"}.
+Images of different dimensions are always reported as \code{"layout-diff"},
+whatever the odiff version. With \code{fail_on_layout = FALSE}, odiff >= 4.3.5
+counts the pixels outside the shared area as different, and those counts
+are kept; odiff < 4.3.5 compares only the shared area, so its counts are
+discarded (\code{NA}).
 }
 \examples{
 \dontrun{

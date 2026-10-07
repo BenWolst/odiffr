@@ -540,7 +540,7 @@ test_that("odiff_run treats a same-sized PNG and JPEG as the same layout", {
   expect_equal(result$reason, "match")
 })
 
-test_that("odiff_run keeps size-mismatch pixel diffs from odiff >= 4.3.5", {
+test_that("odiff_run reports a size change as layout-diff with counts on odiff >= 4.3.5", {
   skip_if_no_odiff()
 
   small <- create_test_image(100, 100, "red")
@@ -558,9 +558,28 @@ test_that("odiff_run keeps size-mismatch pixel diffs from odiff >= 4.3.5", {
   )
   result <- odiff_run(small, tall)
   expect_false(result$match)
-  expect_equal(result$reason, "pixel-diff")
+  expect_equal(result$reason, "layout-diff")
+  # The counts are trustworthy here, so they are kept
   expect_identical(result$diff_count, 2023L)
   expect_equal(result$diff_percentage, 100 * 2023 / (100 * 120))
+})
+
+test_that("odiff_run with a real odiff >= 4.3.5 reports a size change as layout-diff", {
+  skip_if_no_odiff()
+  ver <- odiff_version()
+  skip_if(is.na(ver) || utils::compareVersion(ver, "4.3.5") < 0,
+          "needs odiff >= 4.3.5")
+
+  small <- create_test_image(100, 100, "red")
+  tall <- create_test_image(100, 110, "red")
+  on.exit(unlink(c(small, tall)), add = TRUE)
+
+  result <- odiff_run(small, tall)
+  expect_equal(result$exit_code, 22L)  # odiff itself reports a pixel diff
+  expect_false(result$match)
+  expect_equal(result$reason, "layout-diff")
+  expect_identical(result$diff_count, 1000L)
+  expect_equal(result$diff_percentage, 100 * 1000 / (100 * 110))
 })
 
 test_that("odiff_run computes diff_percentage from diff_count", {

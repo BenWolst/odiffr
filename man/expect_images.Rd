@@ -40,8 +40,10 @@ Default is 0.1.}
 \item{antialiasing}{Logical; if \code{TRUE}, ignore antialiased pixels.
 Default is \code{FALSE}.}
 
-\item{fail_on_layout}{Logical; if \code{TRUE}, fail if images have different
-dimensions. Default is \code{TRUE} for tests (stricter than \code{\link[=compare_images]{compare_images()}}).}
+\item{fail_on_layout}{Logical; if \code{TRUE} (the default for tests), odiff
+stops at the size check when images have different dimensions. Such
+images fail either way; \code{FALSE} adds pixel counts and a diff image where
+odiff can (odiff >= 4.3.5).}
 
 \item{ignore_regions}{List of regions to ignore during comparison.
 Use \code{\link[=ignore_region]{ignore_region()}} to create regions, or pass a data.frame with

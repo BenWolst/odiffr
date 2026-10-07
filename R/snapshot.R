@@ -26,8 +26,10 @@
 #' @param ignore_regions List of regions to ignore during comparison.
 #'   Use [ignore_region()] to create regions, or pass a data.frame with
 #'   columns `x1`, `y1`, `x2`, `y2`.
-#' @param fail_on_layout Logical; if `TRUE` (the default), images with
-#'   different dimensions do not match.
+#' @param fail_on_layout Logical; if `TRUE` (the default), odiff stops at
+#'   the size check when images have different dimensions. Such images fail
+#'   either way; `FALSE` adds pixel counts and a diff image where odiff can
+#'   (odiff >= 4.3.5).
 #' @param plot_options Options for rendering plot inputs, created with
 #'   [plot_options()]. `NULL` uses the defaults of [plot_options()].
 #' @param variant If not `NULL`, the snapshot is stored in a
@@ -508,6 +510,11 @@ odiff_preset <- function(name = c("strict", "default", "screenshot",
   what <- if (identical(result$reason, "pixel-diff") &&
                 !is.na(result$diff_percentage)) {
     sprintf("%s pixels differ (%s px)",
+            .fmt_pct(result$diff_percentage),
+            format(result$diff_count, big.mark = ","))
+  } else if (identical(result$reason, "layout-diff") &&
+             !is.na(result$diff_percentage)) {
+    sprintf("image dimensions differ (%s of pixels, %s px)",
             .fmt_pct(result$diff_percentage),
             format(result$diff_count, big.mark = ","))
   } else if (identical(result$reason, "layout-diff")) {
