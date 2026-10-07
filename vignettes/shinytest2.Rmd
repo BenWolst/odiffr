@@ -69,7 +69,7 @@ expects. When you supply `compare`, shinytest2's `threshold` and
 | `"strict"`         | 0           | `FALSE`        | Any pixel change fails |
 | `"default"`        | 0.1         | `FALSE`        | odiffr's usual defaults |
 | `"screenshot"`     | 0.1         | `TRUE`         | Browser screenshots on one platform |
-| `"cross_platform"` | 0.2         | `TRUE`         | Baselines shared across machines |
+| `"cross_platform"` | 0.2         | `TRUE`         | Baselines shared across machines with the same fonts |
 
 `"screenshot"` ignores anti-aliased pixels but keeps the colour threshold
 low, so a real colour change is still caught. In odiffr's calibration
@@ -80,7 +80,10 @@ fails.
 
 `"cross_platform"` also tolerates edges moved by about half a pixel and
 small colour or gamma shifts. The price is that it can miss changes between
-colours of similar brightness (blue to green) and very faint elements.
+colours of similar brightness (blue to green), darkening or lightening
+without a change of hue (black to dark grey) and very faint elements. It
+does little for different fonts, which change the shape of glyphs rather
+than their colour.
 
 Arguments you pass explicitly override the preset, and you can still add
 `ignore_regions`, e.g. for a clock or a random plot:
@@ -214,7 +217,10 @@ scrollbars), and between browser versions. There are two strategies:
   files, but it only absorbs anti-aliasing, sub-pixel and small colour
   differences. Different fonts or text rendering still fail; hide such
   areas with `ignore_regions`, or take screenshots of selected elements
-  (`selector`) that do not contain text.
+  (`selector`) that do not contain text. As a last resort,
+  `compare_file_odiff(max_diff_percent = )` accepts a small share of
+  differing pixels, but a limit large enough to absorb font differences
+  also hides small real changes, such as an edited label.
 
 A common compromise is to run screenshot tests on one platform only, e.g.
 with `skip_on_os(c("windows", "mac"))` or by checking an environment

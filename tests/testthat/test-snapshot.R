@@ -461,6 +461,21 @@ test_that("presets pass anti-aliasing noise but catch real changes", {
   for (preset in c("strict", "default", "screenshot")) {
     expect_false(matches(base, green, preset), label = preset)
   }
+  # So is a darkening without a change of hue (black -> #303030), which
+  # "cross_platform" misses
+  patch <- function(src, name, value) {
+    img <- png::readPNG(src)[, , 1:3]
+    img[75:84, 70:79, ] <- value
+    path <- file.path(dir, name)
+    png::writePNG(img, path)
+    path
+  }
+  black <- patch(base, "black.png", 0)
+  grey <- patch(base, "grey.png", 0x30 / 255)
+  for (preset in c("strict", "default", "screenshot")) {
+    expect_false(matches(black, grey, preset), label = preset)
+  }
+  expect_true(matches(black, grey, "cross_platform"))
 
   # Strict catches everything
   expect_false(matches(base, shifted, "strict"))

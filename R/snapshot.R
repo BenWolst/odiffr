@@ -94,9 +94,15 @@
 #'     [ragg::agg_png()], which gives consistent output across platforms.
 #'   \item Use a tolerant comparison (`preset = "screenshot"` or
 #'     `preset = "cross_platform"`, or `threshold`, `antialiasing = TRUE`,
-#'     `ignore_regions`).
+#'     `ignore_regions`) for anti-aliasing and sub-pixel differences.
 #'   \item Store separate snapshots per platform with `variant`, e.g.
-#'     `variant = Sys.info()[["sysname"]]`.
+#'     `variant = Sys.info()[["sysname"]]`. This is the reliable answer to
+#'     different fonts, which no colour threshold absorbs.
+#'   \item If one baseline must be checked on machines with different fonts,
+#'     accept a small share of differing pixels with `max_diff_percent`.
+#'     Choose the limit from measurements, and keep in mind that it also
+#'     hides real changes of that size (see the "Tolerance" section of
+#'     [compare_images()]).
 #' }
 #'
 #' @section Comparison with vdiffr:
@@ -371,13 +377,23 @@ compare_file_odiff <- function(threshold = 0.1,
 #'     ignores those pixels. The colour threshold stays at 0.1 so that real
 #'     colour changes are still caught.}
 #'   \item{`"cross_platform"`}{`threshold = 0.2`, `antialiasing = TRUE`. For
-#'     baselines shared across machines or operating systems. Also tolerates
-#'     edges that move by up to about half a pixel, thicker anti-aliased
-#'     borders and small colour or gamma shifts. The price: changes between
-#'     colours of similar brightness (e.g. a blue element turning green) and
-#'     very faint elements (light grey on white) can go unnoticed. Different
-#'     fonts or text rendering are not tolerated; use snapshot variants or
-#'     `ignore_regions` for those.}
+#'     baselines shared across machines that render the same way apart from
+#'     anti-aliasing, e.g. the same fonts and graphics device on another
+#'     operating system or CPU. Also tolerates edges that move by up to about
+#'     half a pixel, thicker anti-aliased borders and small colour or gamma
+#'     shifts. The price: changes between colours of similar brightness
+#'     (e.g. a blue element turning green), darkening or lightening without
+#'     a change of hue (black turning to dark grey, `#303030`) and very faint
+#'     elements (light grey on white) can go unnoticed. It does little for
+#'     different fonts or text rendering, which change
+#'     the shape and position of glyphs rather than their colour. In one
+#'     calibration of 640 plots rendered on five Linux distributions,
+#'     raising the threshold from 0.1 to 0.2 left the 95th percentile of
+#'     differing pixels almost unchanged (2.78% and 2.75%). Use snapshot
+#'     variants or `ignore_regions` for font differences or, when one
+#'     baseline must be checked across environments, an image-level
+#'     tolerance (`max_diff_percent`, see the "Tolerance" section of
+#'     [compare_images()]).}
 #' }
 #'
 #' The values were calibrated with images rendered by ragg: shapes with
@@ -389,7 +405,9 @@ compare_file_odiff <- function(threshold = 0.1,
 #' `"screenshot"` they pass, except a 0.5 px shift of a bordered shape (2
 #' pixels), which `"cross_platform"` passes too. A blue to green recolouring
 #' is detected up to a threshold of 0.14, which is why `"screenshot"` keeps
-#' 0.1. The calibration is part of the package's tests.
+#' 0.1; a black patch turning `#303030` is caught by `"screenshot"` and
+#' missed by `"cross_platform"`. The calibration is part of the package's
+#' tests.
 #'
 #' @return A named list with elements `threshold` and `antialiasing`.
 #'

@@ -134,9 +134,15 @@ devices and installed fonts. To reduce spurious failures:
 \code{\link[ragg:agg_png]{ragg::agg_png()}}, which gives consistent output across platforms.
 \item Use a tolerant comparison (\code{preset = "screenshot"} or
 \code{preset = "cross_platform"}, or \code{threshold}, \code{antialiasing = TRUE},
-\code{ignore_regions}).
+\code{ignore_regions}) for anti-aliasing and sub-pixel differences.
 \item Store separate snapshots per platform with \code{variant}, e.g.
-\code{variant = Sys.info()[["sysname"]]}.
+\code{variant = Sys.info()[["sysname"]]}. This is the reliable answer to
+different fonts, which no colour threshold absorbs.
+\item If one baseline must be checked on machines with different fonts,
+accept a small share of differing pixels with \code{max_diff_percent}.
+Choose the limit from measurements, and keep in mind that it also
+hides real changes of that size (see the "Tolerance" section of
+\code{\link[=compare_images]{compare_images()}}).
 }
 }
 

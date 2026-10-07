@@ -6,8 +6,8 @@
 # snapshots and diff images are uploaded as the "image-snapshots" artifact.
 #
 # Image snapshots should be recorded on the same operating system as this
-# job (Linux), or use variants / a tolerant preset, e.g.
-# expect_snapshot_image(..., preset = "cross_platform").
+# job (Linux), or use per-platform variants. preset = "cross_platform" only
+# absorbs anti-aliasing and sub-pixel differences, not different fonts.
 name: odiffr
 
 on:
