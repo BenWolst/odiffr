@@ -61,7 +61,9 @@ Tolerance is a verdict, not a measurement, so it is applied in
 inherits it:
 
 - Named, documented arguments on `compare_images()`, `expect_images_match()`,
-  `compare_file_odiff()` and `expect_snapshot_image()`.
+  `compare_file_odiff()` and `expect_snapshot_image()`. In the two snapshot
+  helpers they come after `...` (like `preset` and `diff_dir`), so they must
+  be named and existing positional arguments keep their meaning.
 - Through `...` (documented in their `...` descriptions):
   `compare_images_batch()`, `compare_image_dirs()`, `compare_pdfs()`,
   `compare_pdf_dirs()`, `snapshot_report()`.
@@ -118,15 +120,15 @@ behaviour does not change.
 | `compare_file_odiff()` / `expect_snapshot_image()` | Returns `TRUE`, so testthat keeps the original baseline and writes no `.new.png`. The diff image is removed, as for a match. Baselines never move within tolerance, so differences cannot accumulate. |
 | `summary()` / `print()` | Tolerated rows count as passed. New `tolerated` count; the print shows "Within tolerance: n" when n > 0. |
 | `batch_report()`, `batch_junit()`, `batch_markdown()` | Tolerated rows are passes. The HTML "all results" table shows the reason. The Markdown summary line notes "n within tolerance" when n > 0. |
-| `approve_changes()` | Not selected by default; reported as skipped with detail "within tolerance". Can still be approved explicitly with `which`. |
+| `approve_changes()` | Not selected by default; reported as skipped by the existing `reasons` filter (detail "reason 'within-tolerance' not in `reasons`"). Can be approved with `which` or by adding it to `reasons`. |
 | `audit_record()` | The `reason` column shows `within-tolerance`. `max_diff_percent` and `max_diff_pixels` are added to the standard parameter names, so CSV output always has a column for them (`NA` when unset). |
 | `failed_pairs()` / `passed_pairs()` | Unchanged (by `match`). Tolerated rows are passed pairs. |
 
 ### Implementation outline
 
-- One internal function, `.apply_tolerance(result, img1, img2,
-  max_diff_percent, max_diff_pixels)`, taking an `odiff_run()` result and
-  returning it with `match`/`reason` updated. It is pure apart from
+- One internal function, `.apply_tolerance(result, max_diff_percent,
+  max_diff_pixels)`, taking an `odiff_run()` result (whose `img1`/`img2`
+  give the image paths) and returning it with `match`/`reason` updated. It is pure apart from
   `.image_dimensions()`, so it is unit-testable with hand-built results.
 - Argument validation in `utils.R` alongside `.validate_threshold()`.
 - `compare_images()` calls `.validate_*()` and `.apply_tolerance()`; the
