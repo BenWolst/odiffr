@@ -98,10 +98,10 @@ with \code{match = FALSE}, \code{reason = "error"} and the error
 In both cases \code{img1}/\code{img2} point to the rendered page that exists and
 to the (nonexistent) path the other page would have had.
 
-Pages with different sizes (e.g. portrait versus landscape) are compared
-as images of different dimensions; by default odiff reports the
-differing pixels, and with \code{fail_on_layout = TRUE} such pages are
-reported with \code{reason = "layout-diff"}.
+Pages with different sizes (e.g. portrait versus landscape) are reported
+with \code{reason = "layout-diff"}. By default (\code{fail_on_layout = FALSE}) they
+also get pixel counts and a diff image where odiff can provide them
+(odiff >= 4.3.5).
 
 An error is raised if a file does not exist or cannot be read as a PDF
 (for example a corrupt or password-protected file).

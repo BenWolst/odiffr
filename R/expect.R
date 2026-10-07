@@ -7,8 +7,10 @@
 #' @param expected Path to the expected/baseline image, or a magick-image object.
 #' @param img1,img2 Paths to images being compared (for `expect_images_differ`).
 #' @inheritParams compare_images
-#' @param fail_on_layout Logical; if `TRUE`, fail if images have different
-#'   dimensions. Default is `TRUE` for tests (stricter than [compare_images()]).
+#' @param fail_on_layout Logical; if `TRUE` (the default for tests), odiff
+#'   stops at the size check when images have different dimensions. Such
+#'   images fail either way; `FALSE` adds pixel counts and a diff image where
+#'   odiff can (odiff >= 4.3.5).
 #' @param info Extra information to be included in the failure message
 #'   (useful for providing context about what was being tested).
 #' @param label Optional custom label for the actual image in failure messages.

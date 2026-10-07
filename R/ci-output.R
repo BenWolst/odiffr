@@ -111,6 +111,10 @@ batch_junit <- function(object,
   message <- if (identical(reason, "pixel-diff") && !is.na(row$diff_percentage[[1]])) {
     sprintf("pixel-diff: %s (%s pixels)",
             .fmt_pct(row$diff_percentage[[1]]), .fmt_count(row$diff_count[[1]]))
+  } else if (identical(reason, "layout-diff") && is.na(err) &&
+             !is.na(row$diff_percentage[[1]])) {
+    sprintf("layout-diff: images have different dimensions (%s, %s pixels)",
+            .fmt_pct(row$diff_percentage[[1]]), .fmt_count(row$diff_count[[1]]))
   } else if (identical(reason, "layout-diff") && is.na(err)) {
     "layout-diff: images have different dimensions"
   } else if (is_error && !is.na(err)) {

@@ -17,6 +17,10 @@
 
 ## Bug fixes
 
+* Images of different dimensions are now reported as `reason = "layout-diff"`
+  on every odiff version, also with `fail_on_layout = FALSE`. With odiff >=
+  4.3.5 they were reported as `"pixel-diff"`; they keep their pixel counts,
+  which failure messages, JUnit output and `print(summary())` now show.
 * `diff_percentage` is now computed from `diff_count` rather than taken from
   odiff's output, which is rounded to 2 decimal places. A handful of
   differing pixels in a large image previously gave a failing comparison with

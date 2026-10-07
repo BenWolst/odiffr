@@ -802,3 +802,15 @@ test_that("expect_snapshot_image() passes within tolerance and keeps the baselin
   expect_equal(res$failed, 1)
   expect_true(file.exists(snap_new))
 })
+
+test_that("snapshot failure message gives counts for a size change when known", {
+  result <- list(reason = "layout-diff", diff_percentage = 100 * 1000 / 11000,
+                 diff_count = 1000L)
+  msg <- odiffr:::.snapshot_failure_message(result, "square.png", NULL)
+  expect_equal(msg, paste0("odiff: image dimensions differ (9.09% of pixels, ",
+                           "1,000 px) in 'square.png'; no diff image"))
+  result <- list(reason = "layout-diff", diff_percentage = NA_real_,
+                 diff_count = NA_integer_)
+  msg <- odiffr:::.snapshot_failure_message(result, "square.png", NULL)
+  expect_equal(msg, "odiff: image dimensions differ in 'square.png'; no diff image")
+})

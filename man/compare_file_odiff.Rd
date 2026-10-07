@@ -27,8 +27,10 @@ Default is \code{FALSE} (or the value from \code{preset}).}
 Use \code{\link[=ignore_region]{ignore_region()}} to create regions, or pass a data.frame with
 columns \code{x1}, \code{y1}, \code{x2}, \code{y2}.}
 
-\item{fail_on_layout}{Logical; if \code{TRUE} (the default), images with
-different dimensions do not match.}
+\item{fail_on_layout}{Logical; if \code{TRUE} (the default), odiff stops at
+the size check when images have different dimensions. Such images fail
+either way; \code{FALSE} adds pixel counts and a diff image where odiff can
+(odiff >= 4.3.5).}
 
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}}.}
 

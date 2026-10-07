@@ -147,12 +147,16 @@ print.odiffr_batch_summary <- function(x, ...) {
       row <- x$worst[i, ]
       label <- .row_label(row)
       if (is.na(row$diff_percentage)) {
-        # layout-diff / error / missing rows have no pixel statistics
+        # error / missing rows (and layout-diff from odiff < 4.3.5) have no
+        # pixel statistics
         detail <- .row_reason_text(row)
       } else {
         detail <- sprintf("%s, %s pixels",
                           .fmt_pct(row$diff_percentage),
                           .fmt_count(row$diff_count))
+        if (identical(row$reason, "layout-diff")) {
+          detail <- paste0("layout-diff, ", detail)
+        }
       }
       cat(sprintf("  %d. %s (%s)\n", i, label, detail))
     }

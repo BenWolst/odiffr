@@ -16,6 +16,10 @@
 #'   Default is `FALSE`.
 #' @param fail_on_layout Logical; if `TRUE`, fail immediately if images have
 #'   different dimensions. Default is `FALSE`.
+#'   Images of different dimensions never match and are reported as
+#'   `"layout-diff"` either way; `TRUE` stops odiff at the size check,
+#'   while `FALSE` also gives pixel counts and a diff image where odiff
+#'   can (odiff >= 4.3.5).
 #' @param diff_mask Logical; if `TRUE`, output only the changed pixels in the
 #'   diff image. Default is `FALSE`.
 #' @param diff_overlay Logical or numeric; if `TRUE` or a number between 0 and
@@ -51,7 +55,8 @@
 #'     \item{reason}{Character; one of `"match"`, `"pixel-diff"`,
 #'       `"layout-diff"`, or `"error"`.}
 #'     \item{diff_count}{Integer; number of different pixels (`0` for a
-#'       match), or `NA` if unknown (layout difference or error).}
+#'       match), or `NA` if unknown (an error, or a layout difference that
+#'       odiff did not count; see `fail_on_layout`).}
 #'     \item{diff_percentage}{Numeric; percentage of different pixels (`0` for
 #'       a match), or `NA` if unknown.}
 #'     \item{diff_lines}{Integer vector of line numbers with differences,
@@ -86,9 +91,11 @@
 #' `diff_percentage` is computed from `diff_count` and the image dimensions,
 #' since odiff rounds it to 2 decimal places.
 #'
-#' With `fail_on_layout = FALSE`, odiff < 4.3.5 compares only the area that
-#' differently sized images share, so odiffr reports such comparisons as
-#' `"layout-diff"`.
+#' Images of different dimensions are always reported as `"layout-diff"`,
+#' whatever the odiff version. With `fail_on_layout = FALSE`, odiff >= 4.3.5
+#' counts the pixels outside the shared area as different, and those counts
+#' are kept; odiff < 4.3.5 compares only the shared area, so its counts are
+#' discarded (`NA`).
 #'
 #' @seealso [compare_images()] for a higher-level interface,
 #'   [ignore_region()] for creating ignore regions.
@@ -201,29 +208,36 @@ odiff_run <- function(img1, img2,
     parsed$error <- result$error
   }
 
-  # Without --fail-on-layout, odiff < 4.3.5 compares only the area that
-  # differently sized images share, reporting a match or too small a pixel
-  # diff; detect that case from the image headers
+  # Without --fail-on-layout, odiff reports differently sized images as a
+  # pixel diff (odiff < 4.3.5 even as a match, comparing only the area they
+  # share). Report every size change as "layout-diff", on any odiff version,
+  # keeping the counts only when odiff counted the whole image (>= 4.3.5).
   image_dims <- NULL
-  check_layout <- !isTRUE(fail_on_layout) &&
-    parsed$reason %in% c("match", "pixel-diff") &&
-    .odiff_older_than("4.3.5")
-  if (check_layout || identical(parsed$reason, "pixel-diff")) {
-    d1 <- .image_dimensions(img1)
-    d2 <- .image_dimensions(img2)
-    # Kept for compare_images(), so the tolerance check need not read them again
-    image_dims <- list(d1, d2)
-    dims_known <- !is.null(d1) && !is.null(d2)
-    if (check_layout && dims_known && !isTRUE(all(d1 == d2))) {
-      parsed$match <- FALSE
-      parsed$reason <- "layout-diff"
-      parsed$diff_count <- NA_integer_
-      parsed$diff_percentage <- NA_real_
-    } else if (identical(parsed$reason, "pixel-diff") && dims_known &&
-               !is.na(parsed$diff_count)) {
-      # odiff prints the percentage rounded to 2 decimal places, so recompute
-      # it from the count; odiff divides by max width times max height
-      parsed$diff_percentage <- 100 * parsed$diff_count / prod(pmax(d1, d2))
+  if (parsed$reason %in% c("match", "pixel-diff")) {
+    old_odiff <- .odiff_older_than("4.3.5")
+    # A match from odiff >= 4.3.5 always means equal sizes
+    if (identical(parsed$reason, "pixel-diff") ||
+        (old_odiff && !isTRUE(fail_on_layout))) {
+      d1 <- .image_dimensions(img1)
+      d2 <- .image_dimensions(img2)
+      # Kept for compare_images(), so the tolerance check need not read them
+      # again
+      image_dims <- list(d1, d2)
+      dims_known <- !is.null(d1) && !is.null(d2)
+      if (dims_known && !is.na(parsed$diff_count)) {
+        # odiff prints the percentage rounded to 2 decimal places, so
+        # recompute it from the count; odiff divides by max width times max
+        # height
+        parsed$diff_percentage <- 100 * parsed$diff_count / prod(pmax(d1, d2))
+      }
+      if (dims_known && !isTRUE(all(d1 == d2))) {
+        parsed$match <- FALSE
+        parsed$reason <- "layout-diff"
+        if (old_odiff) {
+          parsed$diff_count <- NA_integer_
+          parsed$diff_percentage <- NA_real_
+        }
+      }
     }
   }
 

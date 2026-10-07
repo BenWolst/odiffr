@@ -164,7 +164,8 @@ test_that("compare_images() never tolerates a size change (odiff >= 4.3.5)", {
   )
   res <- compare_images(small, tall, max_diff_percent = 100)
   expect_false(res$match)
-  expect_equal(res$reason, "pixel-diff")
+  expect_equal(res$reason, "layout-diff")
+  expect_identical(res$diff_count, 1000L)
 })
 
 test_that("compare_images() applies the tolerance to plot inputs", {

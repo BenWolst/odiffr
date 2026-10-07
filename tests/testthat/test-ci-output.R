@@ -271,3 +271,19 @@ test_that("batch_markdown notes comparisons within tolerance", {
   md <- batch_markdown(make_batch(match = TRUE, reason = "match"))
   expect_false(grepl("tolerance", md))
 })
+
+test_that("batch_junit and summary give counts for a size change when known", {
+  batch <- make_batch(match = c(FALSE, FALSE),
+                      reason = c("layout-diff", "layout-diff"),
+                      diff_count = c(1000L, NA), diff_percentage = c(9.09, NA))
+  out <- capture.output(print(summary(batch)))
+  expect_true(any(grepl("layout-diff, 9.09%, 1000 pixels", out, fixed = TRUE)))
+
+  skip_if_not_installed("xml2")
+  doc <- xml2::read_xml(batch_junit(batch))
+  msgs <- xml2::xml_attr(xml2::xml_find_all(doc, "//failure"), "message")
+  expect_equal(msgs, c(
+    "layout-diff: images have different dimensions (9.09%, 1000 pixels)",
+    "layout-diff: images have different dimensions"
+  ))
+})
