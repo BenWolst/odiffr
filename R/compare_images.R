@@ -137,6 +137,35 @@ compare_images <- function(img1, img2,
   }
 }
 
+# Internal: accept a small pixel difference under an image-level tolerance.
+# `result` is an odiff_run() result. It is returned with match = TRUE and
+# reason = "within-tolerance" when odiff reported a pixel difference with a
+# count, both images have the same, readable dimensions (a size change always
+# fails), and every given limit holds (limits are inclusive).
+.apply_tolerance <- function(result, max_diff_percent = NULL,
+                             max_diff_pixels = NULL) {
+  if (is.null(max_diff_percent) && is.null(max_diff_pixels)) {
+    return(result)
+  }
+  if (!identical(result$reason, "pixel-diff") || is.na(result$diff_count)) {
+    return(result)
+  }
+  d1 <- .image_dimensions(result$img1)
+  d2 <- .image_dimensions(result$img2)
+  if (is.null(d1) || is.null(d2) || !isTRUE(all(d1 == d2))) {
+    return(result)
+  }
+  within <- (is.null(max_diff_pixels) ||
+               result$diff_count <= max_diff_pixels) &&
+    (is.null(max_diff_percent) ||
+       isTRUE(result$diff_percentage <= max_diff_percent))
+  if (within) {
+    result$match <- TRUE
+    result$reason <- "within-tolerance"
+  }
+  result
+}
+
 # Internal: extract odiff's error message from an odiff_run() result.
 # Reads `result$error` defensively (older odiff_run() versions do not return
 # it) and falls back to odiff's stderr/stdout text when the comparison failed.
