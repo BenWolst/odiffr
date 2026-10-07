@@ -257,3 +257,17 @@ test_that("batch_markdown and batch_junit show tiny percentages as <0.01%", {
   expect_equal(xml2::xml_attr(failure, "message"),
                "pixel-diff: <0.01% (15 pixels)")
 })
+
+test_that("batch_markdown notes comparisons within tolerance", {
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
+  batch <- make_batch(match = c(TRUE, TRUE),
+                      reason = c("match", "within-tolerance"),
+                      diff_count = c(0L, 5L), diff_percentage = c(0, 0.05))
+  md <- batch_markdown(batch)
+  expect_match(md, "**All 2 comparisons passed.**", fixed = TRUE)
+  expect_match(md, "1 of the passing comparisons was within tolerance.",
+               fixed = TRUE)
+
+  md <- batch_markdown(make_batch(match = TRUE, reason = "match"))
+  expect_false(grepl("tolerance", md))
+})

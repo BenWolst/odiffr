@@ -517,3 +517,27 @@ test_that(".row_label() prefers the snapshot column", {
   row$snapshot <- NULL
   expect_equal(odiffr:::.row_label(row), "var.new.png")
 })
+
+test_that("summary counts comparisons within tolerance as passed", {
+  batch <- make_batch(match = c(TRUE, TRUE, FALSE),
+                      reason = c("match", "within-tolerance", "pixel-diff"),
+                      diff_count = c(0L, 5L, 500L),
+                      diff_percentage = c(0, 0.05, 5))
+  summ <- summary(batch)
+  expect_equal(summ$passed, 2L)
+  expect_equal(summ$tolerated, 1L)
+  expect_equal(names(summ$reason_counts), "pixel-diff")
+
+  out <- capture.output(print(summ))
+  expect_true(any(grepl("Within tolerance: 1", out, fixed = TRUE)))
+
+  out <- capture.output(print(summary(make_batch(match = TRUE,
+                                                 reason = "match"))))
+  expect_false(any(grepl("tolerance", out)))
+})
+
+test_that("print works for summaries without a tolerated count", {
+  summ <- summary(make_batch(match = TRUE, reason = "match"))
+  summ$tolerated <- NULL
+  expect_output(print(summ), "Passed: 1")
+})

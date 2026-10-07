@@ -17,6 +17,8 @@
 #'     \item{total}{Total number of comparisons.}
 #'     \item{passed}{Number of matching image pairs.}
 #'     \item{failed}{Number of non-matching image pairs.}
+#'     \item{tolerated}{Number of passing comparisons that differ within a
+#'       tolerance (`reason = "within-tolerance"`, see [compare_images()]).}
 #'     \item{pass_rate}{Proportion of passing comparisons (0 to 1), or `NA`
 #'       for an empty batch (zero comparisons).}
 #'     \item{reason_counts}{Table of failure reasons (NULL if no failures).}
@@ -64,6 +66,7 @@ summary.odiffr_batch <- function(object, n_worst = 5, ...) {
   total <- nrow(object)
   passed <- sum(object$match, na.rm = TRUE)
   failed <- total - passed
+  tolerated <- sum(object$reason == "within-tolerance", na.rm = TRUE)
 
   # Breakdown by reason
   reason_counts <- if (failed > 0) {
@@ -101,6 +104,7 @@ summary.odiffr_batch <- function(object, n_worst = 5, ...) {
       total = total,
       passed = passed,
       failed = failed,
+      tolerated = tolerated,
       pass_rate = if (total > 0) passed / total else NA_real_,
       reason_counts = reason_counts,
       diff_stats = diff_stats,
@@ -119,6 +123,9 @@ print.odiffr_batch_summary <- function(x, ...) {
 
   cat(sprintf("Passed: %d (%s)\n", x$passed, .fmt_pct(x$pass_rate * 100, 1)))
   cat(sprintf("Failed: %d (%s)\n", x$failed, .fmt_pct((1 - x$pass_rate) * 100, 1)))
+  if (isTRUE(x$tolerated > 0)) {
+    cat(sprintf("Within tolerance: %d (counted as passed)\n", x$tolerated))
+  }
 
   if (!is.null(x$reason_counts)) {
     for (reason in names(x$reason_counts)) {
