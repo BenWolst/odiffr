@@ -13,6 +13,8 @@ compare_images(
   fail_on_layout = FALSE,
   ignore_regions = NULL,
   plot_options = NULL,
+  max_diff_percent = NULL,
+  max_diff_pixels = NULL,
   ...
 )
 }
@@ -47,13 +49,22 @@ columns \code{x1}, \code{y1}, \code{x2}, \code{y2}.}
 inches at 96 dpi on a white background. Ignored for file and
 magick-image inputs.}
 
+\item{max_diff_percent, max_diff_pixels}{Image-level tolerance. \code{NULL}
+(the default) for none, or the largest percentage of differing pixels
+(0 to 100, on the scale of \code{diff_percentage}) and/or the largest number
+of differing pixels to accept. Each limit is inclusive; if both are
+given, both must hold. See "Tolerance".}
+
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}}.}
 }
 \value{
 A tibble (if available) or data.frame with columns:
 \describe{
-\item{match}{Logical; \code{TRUE} if images match.}
-\item{reason}{Character; comparison result reason.}
+\item{match}{Logical; \code{TRUE} if images match, or differ within the
+tolerance (see \code{max_diff_percent}).}
+\item{reason}{Character; \code{"match"}, \code{"pixel-diff"}, \code{"layout-diff"},
+\code{"error"}, or \code{"within-tolerance"} for a pixel difference accepted
+by \code{max_diff_percent}/\code{max_diff_pixels}.}
 \item{diff_count}{Integer; number of different pixels.}
 \item{diff_percentage}{Numeric; percentage of different pixels.}
 \item{diff_output}{Character; path to diff image, or \code{NA}.}
@@ -72,6 +83,25 @@ Accepts file paths, magick-image objects, and plots (ggplot objects,
 functions that draw a plot, or recorded plots), which are rendered to a
 temporary PNG file before comparison.
 }
+\section{Tolerance}{
+
+By default any differing pixel (after \code{threshold}, \code{antialiasing} and
+\code{ignore_regions}) makes a comparison fail. \code{max_diff_percent} and
+\code{max_diff_pixels} accept a pixel difference up to a limit instead: the
+result then has \code{match = TRUE} and \code{reason = "within-tolerance"}, and
+\code{diff_count}, \code{diff_percentage} and \code{diff_output} still describe the
+difference. A tolerance never applies to images of different sizes (even
+with \code{fail_on_layout = FALSE}), to errors, or when the image dimensions
+cannot be read (non-PNG images without the magick package).
+
+Use a tolerance with care. Font rendering differs between systems, and
+for plots it can change a few percent of pixels, while real regressions
+are often tiny: a dropped data point or an edited axis label can be well
+under 0.1\% of a plot. A tolerance large enough to absorb font differences
+hides such changes, so it is best kept for comparisons across
+environments, with exact matching elsewhere.
+}
+
 \examples{
 \dontrun{
 # Compare two image files

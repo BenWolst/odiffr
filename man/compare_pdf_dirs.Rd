@@ -37,7 +37,9 @@ PDF gets its own subdirectory, named after its relative path. If
 parallel. See \code{\link[=compare_images_batch]{compare_images_batch()}} for details.}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_pdfs]{compare_pdfs()}} (e.g.
-\code{threshold}, \code{antialiasing}, \code{ignore_regions}, \code{fail_on_layout}).}
+\code{threshold}, \code{antialiasing}, \code{ignore_regions}, \code{fail_on_layout}). Use
+\code{max_diff_percent} or \code{max_diff_pixels} for an image-level tolerance,
+see \code{\link[=compare_images]{compare_images()}}.}
 }
 \value{
 A tibble (if available) or data.frame with class \code{odiffr_batch},

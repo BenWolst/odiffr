@@ -35,7 +35,9 @@
 #' @param parallel Logical; if `TRUE`, compare pages in parallel. See
 #'   [compare_images_batch()] for details.
 #' @param ... Additional arguments passed to [compare_images()] via
-#'   [compare_images_batch()], e.g. `fail_on_layout = TRUE`.
+#'   [compare_images_batch()], e.g. `fail_on_layout = TRUE`. Use
+#'   `max_diff_percent` or `max_diff_pixels` for an image-level tolerance,
+#'   see [compare_images()].
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
 #'   with one row per compared page, containing the same columns as
@@ -209,7 +211,9 @@ compare_pdfs <- function(baseline, current,
 #' @param parallel Logical; if `TRUE`, compare the pages of each file in
 #'   parallel. See [compare_images_batch()] for details.
 #' @param ... Additional arguments passed to [compare_pdfs()] (e.g.
-#'   `threshold`, `antialiasing`, `ignore_regions`, `fail_on_layout`).
+#'   `threshold`, `antialiasing`, `ignore_regions`, `fail_on_layout`). Use
+#'   `max_diff_percent` or `max_diff_pixels` for an image-level tolerance,
+#'   see [compare_images()].
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
 #'   combining the results for all files (in baseline file order) with a

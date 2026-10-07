@@ -104,3 +104,112 @@ test_that(".apply_tolerance() does not tolerate unknown dimensions", {
   r <- tol_result(a, b)
   expect_identical(odiffr:::.apply_tolerance(r, max_diff_percent = 100), r)
 })
+
+# compare_images() and the functions built on it -----------------------------
+
+test_that("compare_images() accepts a difference within the tolerance", {
+  skip_if_no_odiff()
+  img1 <- create_test_image(1000, 1000, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  res <- compare_images(img1, img2, max_diff_pixels = 1)
+  expect_true(res$match)
+  expect_equal(res$reason, "within-tolerance")
+  expect_identical(res$diff_count, 1L)
+  expect_equal(res$diff_percentage, 1e-4)
+
+  expect_true(compare_images(img1, img2, max_diff_percent = 1e-4)$match)
+
+  res <- compare_images(img1, img2, max_diff_pixels = 0)
+  expect_false(res$match)
+  expect_equal(res$reason, "pixel-diff")
+
+  # No limits: unchanged behaviour
+  expect_equal(compare_images(img1, img2)$reason, "pixel-diff")
+})
+
+test_that("compare_images() validates the tolerance arguments", {
+  skip_if_no_odiff()
+  img <- create_test_image(10, 10, "red")
+  on.exit(unlink(img), add = TRUE)
+  expect_error(compare_images(img, img, max_diff_percent = 101),
+               "max_diff_percent")
+  expect_error(compare_images(img, img, max_diff_pixels = -1),
+               "max_diff_pixels")
+})
+
+test_that("compare_images() never tolerates a size change (odiff >= 4.3.5)", {
+  skip_if_no_odiff()
+  small <- create_test_image(100, 100, "red")
+  tall <- create_test_image(100, 110, "red")
+  on.exit(unlink(c(small, tall)), add = TRUE)
+
+  # odiff >= 4.3.5 reports a size change as a pixel diff with a count
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.5.0",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "1000;9.09", stderr = character(), exit_code = 22L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  res <- compare_images(small, tall, max_diff_percent = 100)
+  expect_false(res$match)
+  expect_equal(res$reason, "pixel-diff")
+})
+
+test_that("compare_images() applies the tolerance to plot inputs", {
+  skip_if_no_odiff()
+  opts <- plot_options(width = 2, height = 2, res = 50)
+  p1 <- function() plot(1:3, pch = 16)
+  p2 <- function() plot(c(1, 2, 3.1), pch = 16)
+
+  expect_false(compare_images(p1, p2, plot_options = opts)$match)
+  res <- compare_images(p1, p2, plot_options = opts, max_diff_percent = 100)
+  expect_true(res$match)
+  expect_equal(res$reason, "within-tolerance")
+})
+
+test_that("the tolerance reaches batch, directory and parallel comparisons", {
+  skip_if_no_odiff()
+  root <- withr::local_tempdir()
+  dir.create(file.path(root, "baseline"))
+  dir.create(file.path(root, "current"))
+  base <- create_test_image(100, 100, "red")
+  mod <- create_modified_image(base, "pixel")
+  on.exit(unlink(c(base, mod)), add = TRUE)
+  for (nm in c("a.png", "b.png")) {
+    file.copy(base, file.path(root, "baseline", nm))
+    file.copy(mod, file.path(root, "current", nm))
+  }
+  pairs <- data.frame(img1 = file.path(root, "baseline", c("a.png", "b.png")),
+                      img2 = file.path(root, "current", c("a.png", "b.png")),
+                      stringsAsFactors = FALSE)
+
+  res <- compare_images_batch(pairs, max_diff_pixels = 1)
+  expect_equal(res$reason, rep("within-tolerance", 2))
+  expect_true(all(res$match))
+
+  res <- compare_images_batch(pairs, parallel = TRUE, max_diff_pixels = 1)
+  expect_equal(res$reason, rep("within-tolerance", 2))
+
+  res <- compare_image_dirs(file.path(root, "baseline"),
+                            file.path(root, "current"), max_diff_pixels = 1)
+  expect_equal(res$reason, rep("within-tolerance", 2))
+
+  res <- compare_image_dirs(file.path(root, "baseline"),
+                            file.path(root, "current"))
+  expect_equal(res$reason, rep("pixel-diff", 2))
+})
+
+test_that("expect_images_differ() fails for a difference within tolerance", {
+  skip_if_no_odiff()
+  img1 <- create_test_image(100, 100, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  expect_success(expect_images_differ(img1, img2))
+  expect_failure(expect_images_differ(img1, img2, max_diff_pixels = 1),
+                 "unexpectedly matches")
+})
