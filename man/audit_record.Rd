@@ -34,7 +34,9 @@ carry their parameters, which are used when \code{params} is \code{NULL}.
 used here to record them; otherwise they are recorded as unknown
 (\code{null} in JSON, \code{NA} in CSV). \code{\link[=odiff_run]{odiff_run()}} results never include the
 tolerance parameters (\code{max_diff_percent}, \code{max_diff_pixels}), which are
-applied by \code{\link[=compare_images]{compare_images()}}; pass them in \code{params} to record them.}
+applied by \code{\link[=compare_images]{compare_images()}}; pass them in \code{params} to record them.
+A warning is given when comparisons passed within a tolerance but
+\code{params} records neither limit.}
 }
 \value{
 The record, a list with elements \code{header} and \code{comparisons} (see

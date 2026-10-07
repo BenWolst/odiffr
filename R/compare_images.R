@@ -183,9 +183,25 @@ compare_images <- function(img1, img2,
   if (!identical(result$reason, "pixel-diff") || is.na(result$diff_count)) {
     return(result)
   }
-  d1 <- .image_dimensions(result$img1)
-  d2 <- .image_dimensions(result$img2)
-  if (is.null(d1) || is.null(d2) || !isTRUE(all(d1 == d2))) {
+  # odiff_run() attaches the dimensions it read for a pixel difference
+  dims <- attr(result, "image_dims")
+  if (is.null(dims)) {
+    dims <- list(.image_dimensions(result$img1),
+                 .image_dimensions(result$img2))
+  }
+  d1 <- dims[[1]]
+  d2 <- dims[[2]]
+  if (is.null(d1) || is.null(d2)) {
+    if (!isTRUE(.odiffr_env$tolerance_dims_warned)) {
+      .odiffr_env$tolerance_dims_warned <- TRUE
+      warning("max_diff_percent/max_diff_pixels not applied: could not read ",
+              "the image dimensions. Install the magick package to compare ",
+              "non-PNG images with a tolerance. (Shown once per session.)",
+              call. = FALSE)
+    }
+    return(result)
+  }
+  if (!isTRUE(all(d1 == d2))) {
     return(result)
   }
   within <- (is.null(max_diff_pixels) ||
@@ -421,6 +437,11 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 # pair_id for each element of `pairs_list`.
 .compare_pairs <- function(pairs_list, ids, diff_dir = NULL,
                            parallel = FALSE, ...) {
+  # Fail once, up front, rather than with an error row per pair
+  dots <- list(...)
+  .validate_max_diff_percent(dots[["max_diff_percent"]])
+  .validate_max_diff_pixels(dots[["max_diff_pixels"]])
+
   if (length(pairs_list) == 0) {
     return(.as_odiffr_batch(list()))
   }
@@ -713,7 +734,8 @@ compare_image_dirs <- function(baseline_dir,
 #'   the diff image only, or `"all"` for baseline, current and diff images
 #'   side by side. See [batch_report()].
 #' @param ... Additional arguments passed to [compare_image_dirs()] (e.g.
-#'   `threshold`, `antialiasing`, `pattern`, `recursive`).
+#'   `threshold`, `antialiasing`, `pattern`, `recursive`, or
+#'   `max_diff_percent` for an image-level tolerance).
 #'
 #' @return The `odiffr_batch` results (invisibly). The HTML report is written
 #'   to `output_file` as a side effect.

@@ -12,7 +12,8 @@
   Within-tolerance snapshots keep their original baseline. `summary()` and
   `batch_markdown()` report how many passes were within tolerance,
   `approve_changes()` skips them unless selected, and `audit_record()` has
-  columns for both parameters.
+  columns for both parameters and warns when passes within tolerance are
+  recorded without the limits used.
 
 ## Bug fixes
 

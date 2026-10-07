@@ -27,6 +27,8 @@
 #'   (`null` in JSON, `NA` in CSV). [odiff_run()] results never include the
 #'   tolerance parameters (`max_diff_percent`, `max_diff_pixels`), which are
 #'   applied by [compare_images()]; pass them in `params` to record them.
+#'   A warning is given when comparisons passed within a tolerance but
+#'   `params` records neither limit.
 #'
 #' @details
 #' **Record structure.** The returned list has two elements:
@@ -136,6 +138,13 @@ audit_record <- function(x, file = NULL, format = c("json", "csv"),
   rows <- .audit_rows(x)
   if (is.null(params) && inherits(x, "odiff_result") && is.list(x$params)) {
     params <- x$params
+  }
+  if (any(rows$reason %in% "within-tolerance") &&
+      is.null(params[["max_diff_percent"]]) &&
+      is.null(params[["max_diff_pixels"]])) {
+    warning("Some comparisons passed within a tolerance, but `params` does ",
+            "not record max_diff_percent or max_diff_pixels. Pass them in ",
+            "`params` so the record shows the limits used.", call. = FALSE)
   }
 
   odiff_path <- tryCatch(.find_odiff_details()$path, error = function(e) NA_character_)

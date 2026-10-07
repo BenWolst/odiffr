@@ -173,7 +173,9 @@ diff_image <- function(x, as = c("magick", "raster")) {
 
 # Internal: explanation shown when there is no diff image
 .no_diff_note <- function(x) {
-  if (isTRUE(x$match)) {
+  if (identical(x$reason, "within-tolerance")) {
+    "No diff image\n(differs within tolerance)"
+  } else if (isTRUE(x$match)) {
     "No diff image\n(images match)"
   } else if (identical(x$reason, "error")) {
     "No diff image\n(comparison failed)"

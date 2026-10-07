@@ -100,9 +100,17 @@ test_that(".apply_tolerance() does not tolerate unknown dimensions", {
   on.exit(unlink(c(a, b)), add = TRUE)
   testthat::local_mocked_bindings(.image_dimensions = function(path) NULL,
                                   .package = "odiffr")
+  env <- odiffr:::.odiffr_env
+  old <- env$tolerance_dims_warned
+  env$tolerance_dims_warned <- NULL
+  withr::defer(env$tolerance_dims_warned <- old)
 
   r <- tol_result(a, b)
-  expect_identical(odiffr:::.apply_tolerance(r, max_diff_percent = 100), r)
+  expect_warning(res <- odiffr:::.apply_tolerance(r, max_diff_percent = 100),
+                 "could not read the image dimensions")
+  expect_identical(res, r)
+  # Warned once per session
+  expect_silent(odiffr:::.apply_tolerance(r, max_diff_percent = 100))
 })
 
 # compare_images() and the functions built on it -----------------------------
@@ -341,4 +349,61 @@ test_that("the tolerance reaches snapshot_report()", {
                            max_diff_pixels = 1)
   expect_equal(batch$reason, "within-tolerance")
   expect_true(batch$match)
+})
+
+# Minor review findings --------------------------------------------------------
+
+test_that("view() explains a missing diff image for a tolerated comparison", {
+  x <- list(match = TRUE, reason = "within-tolerance", diff_output = NULL)
+  expect_equal(odiffr:::.no_diff_note(x),
+               "No diff image\n(differs within tolerance)")
+})
+
+test_that("batch functions validate the tolerance up front", {
+  pairs <- data.frame(img1 = "a.png", img2 = "b.png")
+  expect_error(compare_images_batch(pairs, max_diff_percent = 150),
+               "max_diff_percent must be")
+  expect_error(compare_images_batch(pairs, max_diff_pixels = -1),
+               "max_diff_pixels must be")
+  dir <- withr::local_tempdir()
+  png::writePNG(array(1, dim = c(2, 2, 3)), file.path(dir, "a.png"))
+  expect_error(compare_image_dirs(dir, dir, max_diff_percent = 150),
+               "max_diff_percent must be")
+})
+
+test_that("audit_record() warns when tolerance limits are not recorded", {
+  dir <- withr::local_tempdir()
+  a <- file.path(dir, "a.png")
+  writeBin(as.raw(1:10), a)
+  batch <- make_batch(match = TRUE, reason = "within-tolerance",
+                      diff_count = 3L, diff_percentage = 0.5,
+                      img1 = a, img2 = a)
+
+  expect_warning(audit_record(batch, hash = "md5"),
+                 "passed within a tolerance")
+  expect_no_warning(audit_record(batch, hash = "md5",
+                                 params = list(max_diff_percent = 1)))
+  expect_no_warning(audit_record(make_batch(match = TRUE, reason = "match",
+                                            img1 = a, img2 = a),
+                                 hash = "md5"))
+})
+
+test_that("compare_images() reads each image's dimensions only once", {
+  skip_if_no_odiff()
+  img1 <- create_test_image(100, 100, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  calls <- 0L
+  real <- odiffr:::.image_dimensions
+  testthat::local_mocked_bindings(
+    .image_dimensions = function(path) {
+      calls <<- calls + 1L
+      real(path)
+    },
+    .package = "odiffr"
+  )
+  res <- compare_images(img1, img2, max_diff_pixels = 1)
+  expect_equal(res$reason, "within-tolerance")
+  expect_equal(calls, 2L)
 })
