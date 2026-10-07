@@ -747,3 +747,10 @@ test_that("compare_file_odiff() removes empty diff dirs after a pass", {
   expect_false(dir.exists(file.path(diff_dir, "linux", "img")))
   expect_true(file.exists(other))
 })
+
+test_that("snapshot failure message shows tiny differences as <0.01%", {
+  result <- list(reason = "pixel-diff", diff_percentage = 0.0015,
+                 diff_count = 15L)
+  msg <- odiffr:::.snapshot_failure_message(result, "square.png", NULL)
+  expect_equal(msg, "odiff: <0.01% pixels differ (15 px) in 'square.png'; no diff image")
+})

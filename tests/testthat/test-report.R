@@ -732,3 +732,16 @@ test_that("batch_report images = 'all' works end-to-end with odiff", {
   expect_true(grepl('src="current/changed.png"', html, fixed = TRUE))
   expect_true(grepl('src="diffs/', html, fixed = TRUE))
 })
+
+test_that("batch_report shows tiny and near-full percentages escaped", {
+  batch <- make_batch(match = c(FALSE, rep(TRUE, 1999)),
+                      reason = c("pixel-diff", rep("match", 1999)),
+                      diff_count = c(15L, rep(0L, 1999)),
+                      diff_percentage = c(0.0015, rep(0, 1999)))
+  html <- batch_report(batch, show_all = TRUE)
+  expect_match(html, "<td>&lt;0.01%</td>", fixed = TRUE)
+  expect_match(html, "<tr><td>Min</td><td>&lt;0.01%</td></tr>", fixed = TRUE)
+  expect_match(html, "Passed (&gt;99.9%)", fixed = TRUE)
+  expect_match(html, "Failed (&lt;0.1%)", fixed = TRUE)
+  expect_false(grepl("<0.", html, fixed = TRUE))
+})

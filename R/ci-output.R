@@ -269,7 +269,7 @@ batch_markdown <- function(object,
     lines <- c(lines, sprintf(
       "**%d of %d %s failed** (%d passed, %s pass rate).",
       summ$failed, summ$total, .plural(summ$total, "comparison"),
-      summ$passed, .fmt_pct(summ$pass_rate * 100, 1)
+      summ$passed, .md_escape(.fmt_pct(summ$pass_rate * 100, 1))
     ))
   }
 
@@ -293,7 +293,7 @@ batch_markdown <- function(object,
       }
       c(.md_escape(.row_label(row)),
         .md_escape(reason_lbl),
-        .fmt_pct(row$diff_percentage[[1]]),
+        .md_escape(.fmt_pct(row$diff_percentage[[1]])),
         .fmt_count(row$diff_count[[1]]),
         if (is.na(err) || identical(reason, "missing")) "-" else .md_escape(err))
     }, character(5)))

@@ -202,8 +202,8 @@ batch_report <- function(object,
 
 
 .html_summary_section <- function(summ) {
-  pass_label <- .fmt_pct(summ$pass_rate * 100, 1)
-  fail_label <- .fmt_pct((1 - summ$pass_rate) * 100, 1)
+  pass_label <- .html_escape(.fmt_pct(summ$pass_rate * 100, 1))
+  fail_label <- .html_escape(.fmt_pct((1 - summ$pass_rate) * 100, 1))
 
   stats_html <- sprintf(
     '<div class="stats">
@@ -238,16 +238,16 @@ batch_report <- function(object,
       '<div class="diff-stats">
 <h3>Diff Statistics</h3>
 <table>
-  <tr><td>Min</td><td>%.2f%%</td></tr>
-  <tr><td>Median</td><td>%.2f%%</td></tr>
-  <tr><td>Mean</td><td>%.2f%%</td></tr>
-  <tr><td>Max</td><td>%.2f%%</td></tr>
+  <tr><td>Min</td><td>%s</td></tr>
+  <tr><td>Median</td><td>%s</td></tr>
+  <tr><td>Mean</td><td>%s</td></tr>
+  <tr><td>Max</td><td>%s</td></tr>
 </table>
 </div>\n',
-      summ$diff_stats$min,
-      summ$diff_stats$median,
-      summ$diff_stats$mean,
-      summ$diff_stats$max
+      .html_escape(.fmt_pct(summ$diff_stats$min)),
+      .html_escape(.fmt_pct(summ$diff_stats$median)),
+      .html_escape(.fmt_pct(summ$diff_stats$mean)),
+      .html_escape(.fmt_pct(summ$diff_stats$max))
     )
   }
 
@@ -276,7 +276,7 @@ batch_report <- function(object,
       '<tr>\n  <td>%d</td>\n  <td>%s</td>\n  <td>%s</td>\n  <td>%s</td>\n  %s\n  <td>%s</td>\n</tr>',
       i,
       .html_escape(img_label),
-      .fmt_pct(row$diff_percentage),
+      .html_escape(.fmt_pct(row$diff_percentage)),
       .fmt_count(row$diff_count),
       .html_reason_cell(row),
       img_html
@@ -308,7 +308,7 @@ batch_report <- function(object,
 
     img_label <- .row_label(row)
 
-    diff_pct <- .fmt_pct(row$diff_percentage)
+    diff_pct <- .html_escape(.fmt_pct(row$diff_percentage))
     diff_cnt <- .fmt_count(row$diff_count)
     img_html <- .format_row_images(row, images, embed, output_file, relative_paths)
 

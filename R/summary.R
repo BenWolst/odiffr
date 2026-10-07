@@ -128,10 +128,10 @@ print.odiffr_batch_summary <- function(x, ...) {
 
   if (!is.null(x$diff_stats)) {
     cat("\nDiff statistics (failed pairs):\n")
-    cat(sprintf("  Min:    %.2f%%\n", x$diff_stats$min))
-    cat(sprintf("  Median: %.2f%%\n", x$diff_stats$median))
-    cat(sprintf("  Mean:   %.2f%%\n", x$diff_stats$mean))
-    cat(sprintf("  Max:    %.2f%%\n", x$diff_stats$max))
+    cat(sprintf("  Min:    %s\n", .fmt_pct(x$diff_stats$min)))
+    cat(sprintf("  Median: %s\n", .fmt_pct(x$diff_stats$median)))
+    cat(sprintf("  Mean:   %s\n", .fmt_pct(x$diff_stats$mean)))
+    cat(sprintf("  Max:    %s\n", .fmt_pct(x$diff_stats$max)))
   }
 
   if (!is.null(x$worst) && nrow(x$worst) > 0) {
@@ -157,7 +157,13 @@ print.odiffr_batch_summary <- function(x, ...) {
 
 # Internal: format a percentage, "-" for NA/NaN
 .fmt_pct <- function(x, digits = 2) {
-  out <- sprintf(paste0("%.", digits, "f%%"), x)
+  fmt <- paste0("%.", digits, "f%%")
+  out <- sprintf(fmt, x)
+  # Never round a nonzero value to 0% or a value below 100 to 100%
+  tiny <- !is.na(x) & x > 0 & out == sprintf(fmt, 0)
+  out[tiny] <- paste0("<", sprintf(fmt, 10^-digits))
+  near_full <- !is.na(x) & x < 100 & out == sprintf(fmt, 100)
+  out[near_full] <- paste0(">", sprintf(fmt, 100 - 10^-digits))
   out[is.na(x)] <- "-"
   out
 }

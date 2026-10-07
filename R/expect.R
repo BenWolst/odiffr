@@ -159,8 +159,8 @@ expect_images_match <- function(actual,
 
   if (!is.na(result$diff_count)) {
     msg <- paste0(msg, sprintf(
-      "\nDiff: %d pixels (%.2f%%)",
-      result$diff_count, result$diff_percentage
+      "\nDiff: %d pixels (%s)",
+      result$diff_count, .fmt_pct(result$diff_percentage)
     ))
   }
 

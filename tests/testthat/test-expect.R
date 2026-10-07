@@ -469,3 +469,18 @@ test_that("a passing plot expectation keeps another one's failure diff", {
   expect_success(expect_images_match(draw, light, plot_options = opts))
   expect_equal(list.files(diff_dir), diffs)
 })
+
+test_that("expect_images_match failure message shows tiny differences as <0.01%", {
+  skip_if_no_odiff()
+
+  img1 <- create_test_image(1000, 1000, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+  withr::local_options(odiffr.save_diff = FALSE)
+
+  err <- tryCatch(
+    expect_images_match(img2, img1),
+    expectation_failure = function(e) e
+  )
+  expect_match(err$message, "Diff: 1 pixels (<0.01%)", fixed = TRUE)
+})
