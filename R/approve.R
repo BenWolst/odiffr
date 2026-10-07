@@ -54,7 +54,9 @@
 #' `reason = "error"` cannot be approved (the comparison itself failed, so
 #' there is no valid current image to accept); they are reported as skipped.
 #' Rows whose `img1`/`img2` are not files (e.g. `"<magick-image>"` labels)
-#' are skipped as well.
+#' are skipped as well. Rows with `reason = "within-tolerance"` passed
+#' within a tolerance (see [compare_images()]) and are skipped unless
+#' selected with `which` or listed in `reasons`.
 #'
 #' Parent directories of baselines are created as needed. A failed copy or
 #' deletion is reported (action `"failed"`) and does not stop the remaining

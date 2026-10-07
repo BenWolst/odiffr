@@ -306,3 +306,19 @@ test_that("approve_changes fails rows that share a baseline", {
   expect_equal(actions$action, "updated")
   expect_true(same_file_content(base, cur2))
 })
+
+test_that("approve_changes skips rows within tolerance unless selected", {
+  root <- withr::local_tempdir()
+  b <- make_file_batch(root, c("pixel-diff", "within-tolerance"))
+
+  expect_message(actions <- approve_changes(b),
+                 "skipped 1 \\(within-tolerance\\)")
+  expect_equal(actions$action, c("updated", "skipped"))
+  expect_equal(actions$detail[2],
+               "reason 'within-tolerance' not in `reasons`")
+  expect_false(same_file_content(b$img1[2], b$img2[2]))
+
+  expect_message(actions <- approve_changes(b, which = 2L), "Approved 1")
+  expect_equal(actions$action, "updated")
+  expect_true(same_file_content(b$img1[2], b$img2[2]))
+})

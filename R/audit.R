@@ -24,7 +24,9 @@
 #'   carry their parameters, which are used when `params` is `NULL`.
 #'   [compare_images()] and batch results do not, so pass the parameters
 #'   used here to record them; otherwise they are recorded as unknown
-#'   (`null` in JSON, `NA` in CSV).
+#'   (`null` in JSON, `NA` in CSV). [odiff_run()] results never include the
+#'   tolerance parameters (`max_diff_percent`, `max_diff_pixels`), which are
+#'   applied by [compare_images()]; pass them in `params` to record them.
 #'
 #' @details
 #' **Record structure.** The returned list has two elements:
@@ -63,7 +65,7 @@
 #'   \item{diff_output_size}{Numeric; size of the diff image, or `NA`.}
 #'   \item{match}{Logical; whether the images matched.}
 #'   \item{reason}{Character; `"match"`, `"pixel-diff"`, `"layout-diff"`,
-#'     `"error"` or `"missing"`.}
+#'     `"error"`, `"missing"` or `"within-tolerance"`.}
 #'   \item{diff_count}{Integer; number of different pixels, or `NA`.}
 #'   \item{diff_percentage}{Numeric; percentage of different pixels, or
 #'     `NA`.}
@@ -81,7 +83,8 @@
 #' `params`) and followed by one `param_<name>` column per parameter. The
 #' standard parameters (`threshold`, `antialiasing`, `fail_on_layout`,
 #' `ignore_regions`, `diff_mask`, `diff_overlay`, `diff_color`, `reduce_ram`,
-#' `enable_asm`) always have a column (`NA` when unknown); other parameters
+#' `enable_asm`, `max_diff_percent`, `max_diff_pixels`) always have a column
+#' (`NA` when unknown); other parameters
 #' passed in `params` are added after them.
 #'
 #' @return The record, a list with elements `header` and `comparisons` (see
@@ -301,7 +304,8 @@ audit_record <- function(x, file = NULL, format = c("json", "csv"),
 # Internal: standard parameter names (as stored by odiff_run())
 .audit_param_names <- c("threshold", "antialiasing", "fail_on_layout",
                         "ignore_regions", "diff_mask", "diff_overlay",
-                        "diff_color", "reduce_ram", "enable_asm")
+                        "diff_color", "reduce_ram", "enable_asm",
+                        "max_diff_percent", "max_diff_pixels")
 
 # Internal: flatten a record into one data.frame for CSV output
 .audit_flatten <- function(record) {
