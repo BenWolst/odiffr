@@ -340,6 +340,12 @@
   ceiling(timeout)
 }
 
+# Is the odiff binary older than `version`? An unknown version counts as old.
+.odiff_older_than <- function(version) {
+  ver <- odiff_version()
+  is.na(ver) || utils::compareVersion(ver, version) < 0
+}
+
 # Image dimensions (width, height) without decoding, or NULL if unknown.
 # PNG is read from its IHDR header; other formats use magick if installed.
 .image_dimensions <- function(path) {

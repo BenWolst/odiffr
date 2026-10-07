@@ -493,7 +493,133 @@ test_that("odiff_run reports a size mismatch as layout-diff on odiff < 4.5.0", {
   expect_equal(result$diff_count, 0L)
 })
 
-test_that("odiff_run leaves odiff >= 4.5.0 match results alone", {
+test_that("odiff_run reports a size mismatch with pixel diffs as layout-diff on odiff < 4.3.5", {
+  skip_if_no_odiff()
+
+  small <- create_test_image(100, 100, "red")
+  tall <- create_test_image(100, 120, "red")
+  on.exit(unlink(c(small, tall)), add = TRUE)
+
+  # Old odiff only compares the overlapping area when img2 is larger, so a
+  # size change plus a small content change looks like a tiny pixel diff
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.2.1",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "22;0.00", stderr = character(), exit_code = 22L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(small, tall)
+  expect_false(result$match)
+  expect_equal(result$reason, "layout-diff")
+  expect_identical(result$diff_count, NA_integer_)
+  expect_identical(result$diff_percentage, NA_real_)
+})
+
+test_that("odiff_run treats a same-sized PNG and JPEG as the same layout", {
+  skip_if_no_odiff()
+  skip_if_not_installed("magick")
+
+  png_file <- create_test_image(30, 20, "red")
+  jpg <- tempfile(fileext = ".jpg")
+  on.exit(unlink(c(png_file, jpg)), add = TRUE)
+  magick::image_write(magick::image_read(png_file), jpg, format = "jpeg")
+
+  # PNG dimensions are doubles, magick's are integers
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.2.1",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "0", stderr = character(), exit_code = 0L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(png_file, jpg)
+  expect_true(result$match)
+  expect_equal(result$reason, "match")
+})
+
+test_that("odiff_run keeps size-mismatch pixel diffs from odiff >= 4.3.5", {
+  skip_if_no_odiff()
+
+  small <- create_test_image(100, 100, "red")
+  tall <- create_test_image(100, 120, "red")
+  on.exit(unlink(c(small, tall)), add = TRUE)
+
+  # odiff >= 4.3.5 counts pixels outside the overlap as different
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.3.5",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "2023;16.86", stderr = character(), exit_code = 22L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(small, tall)
+  expect_false(result$match)
+  expect_equal(result$reason, "pixel-diff")
+  expect_identical(result$diff_count, 2023L)
+  expect_equal(result$diff_percentage, 100 * 2023 / (100 * 120))
+})
+
+test_that("odiff_run computes diff_percentage from diff_count", {
+  skip_if_no_odiff()
+
+  img1 <- create_test_image(1000, 1000, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  # odiff prints the percentage to 2 decimal places ("1;0.00")
+  result <- odiff_run(img1, img2)
+  expect_false(result$match)
+  expect_identical(result$diff_count, 1L)
+  expect_equal(result$diff_percentage, 1e-4)
+})
+
+test_that("odiff_run uses the larger width and height as the percentage base", {
+  skip_if_no_odiff()
+
+  tall <- create_test_image(100, 120, "red")
+  wide <- create_test_image(140, 100, "red")
+  on.exit(unlink(c(tall, wide)), add = TRUE)
+
+  # odiff divides by max(width) * max(height), here 140 * 120
+  testthat::local_mocked_bindings(
+    odiff_version = function() "4.5.0",
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "6000;35.71", stderr = character(), exit_code = 22L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(tall, wide)
+  expect_identical(result$diff_count, 6000L)
+  expect_equal(result$diff_percentage, 100 * 6000 / (140 * 120))
+})
+
+test_that("odiff_run falls back to odiff's percentage without image dimensions", {
+  skip_if_no_odiff()
+
+  img1 <- create_test_image(10, 10, "red")
+  img2 <- create_test_image(10, 10, "blue")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  testthat::local_mocked_bindings(
+    .image_dimensions = function(path) NULL,
+    .run_odiff = function(odiff_path, args, timeout_secs = 0) {
+      list(stdout = "100;100.00", stderr = character(), exit_code = 22L,
+           error = NA_character_)
+    },
+    .package = "odiffr"
+  )
+  result <- odiff_run(img1, img2)
+  expect_equal(result$reason, "pixel-diff")
+  expect_identical(result$diff_count, 100L)
+  expect_identical(result$diff_percentage, 100)
+})
+
+test_that("odiff_run leaves odiff >= 4.3.5 match results alone", {
   skip_if_no_odiff()
 
   small <- create_test_image(100, 100, "red")
@@ -501,7 +627,7 @@ test_that("odiff_run leaves odiff >= 4.5.0 match results alone", {
   on.exit(unlink(c(small, wide)), add = TRUE)
 
   testthat::local_mocked_bindings(
-    odiff_version = function() "4.5.0",
+    odiff_version = function() "4.3.5",
     .run_odiff = function(odiff_path, args, timeout_secs = 0) {
       list(stdout = "0", stderr = character(), exit_code = 0L,
            error = NA_character_)
@@ -513,15 +639,15 @@ test_that("odiff_run leaves odiff >= 4.5.0 match results alone", {
   expect_equal(result$reason, "match")
 })
 
-test_that("odiff_run with a real odiff < 4.5.0 binary reports layout-diff", {
-  # Point ODIFFR_TEST_OLD_ODIFF at an odiff 4.1.x binary to run this test
+test_that("odiff_run with a real odiff < 4.3.5 binary reports layout-diff", {
+  # Point ODIFFR_TEST_OLD_ODIFF at an odiff 4.1.1 - 4.3.2 binary to run this
   old_bin <- Sys.getenv("ODIFFR_TEST_OLD_ODIFF")
   skip_if(!nzchar(old_bin) || !file.exists(old_bin),
           "ODIFFR_TEST_OLD_ODIFF not set to an odiff binary")
   withr::local_options(odiffr.path = old_bin)
   ver <- odiff_version()
-  skip_if(is.na(ver) || utils::compareVersion(ver, "4.5.0") >= 0,
-          "ODIFFR_TEST_OLD_ODIFF is not an odiff < 4.5.0")
+  skip_if(is.na(ver) || utils::compareVersion(ver, "4.3.5") >= 0,
+          "ODIFFR_TEST_OLD_ODIFF is not an odiff < 4.3.5")
 
   small <- create_test_image(100, 100, "red")
   wide <- create_test_image(120, 100, "red")
@@ -536,6 +662,15 @@ test_that("odiff_run with a real odiff < 4.5.0 binary reports layout-diff", {
   expect_true(odiff_run(small, small)$match)
   expect_equal(odiff_run(small, wide, fail_on_layout = TRUE)$reason,
                "layout-diff")
+
+  # A larger img2 that also differs inside the overlap
+  tall_base <- create_test_image(100, 120, "red")
+  tall <- create_modified_image(tall_base, "pixel")
+  on.exit(unlink(c(tall_base, tall)), add = TRUE)
+  result <- odiff_run(small, tall)
+  expect_equal(result$exit_code, 22L)  # odiff reports a tiny pixel diff
+  expect_equal(result$reason, "layout-diff")
+  expect_identical(result$diff_count, NA_integer_)
 })
 
 test_that("odiff_run accepts timeouts larger than an integer", {

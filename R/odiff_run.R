@@ -82,8 +82,13 @@
 #' unsupported CPUs is determined by odiff itself.
 #'
 #' odiff is always invoked with `--parsable-stdout`, and its machine-readable
-#' output is parsed to fill `diff_count`, `diff_percentage`, `diff_lines` and
-#' `diff_cols`.
+#' output is parsed to fill `diff_count`, `diff_lines` and `diff_cols`.
+#' `diff_percentage` is computed from `diff_count` and the image dimensions,
+#' since odiff rounds it to 2 decimal places.
+#'
+#' With `fail_on_layout = FALSE`, odiff < 4.3.5 compares only the area that
+#' differently sized images share, so odiffr reports such comparisons as
+#' `"layout-diff"`.
 #'
 #' @seealso [compare_images()] for a higher-level interface,
 #'   [ignore_region()] for creating ignore regions.
@@ -138,8 +143,7 @@ odiff_run <- function(img1, img2,
 
   # Version guard for enable_asm
   if (isTRUE(enable_asm)) {
-    ver <- odiff_version()
-    if (is.na(ver) || utils::compareVersion(ver, "4.1.1") < 0) {
+    if (.odiff_older_than("4.1.1")) {
       warning("enable_asm = TRUE requires odiff >= 4.1.1; ",
               "flag will be ignored for older versions.", call. = FALSE)
       enable_asm <- FALSE
@@ -148,8 +152,7 @@ odiff_run <- function(img1, img2,
 
   # Version guard for diff_cols
   if (isTRUE(diff_cols)) {
-    ver <- odiff_version()
-    if (is.na(ver) || utils::compareVersion(ver, "4.5.0") < 0) {
+    if (.odiff_older_than("4.5.0")) {
       warning("diff_cols = TRUE requires odiff >= 4.5.0; ",
               "flag will be ignored for older versions.", call. = FALSE)
       diff_cols <- FALSE
@@ -198,19 +201,26 @@ odiff_run <- function(img1, img2,
     parsed$error <- result$error
   }
 
-  # odiff < 4.5.0 reports differently sized images as a match unless
-  # --fail-on-layout is given; detect that case from the image headers
-  if (identical(parsed$reason, "match") && !isTRUE(fail_on_layout)) {
-    ver <- odiff_version()
-    if (is.na(ver) || utils::compareVersion(ver, "4.5.0") < 0) {
-      d1 <- .image_dimensions(img1)
-      d2 <- .image_dimensions(img2)
-      if (!is.null(d1) && !is.null(d2) && !identical(d1, d2)) {
-        parsed$match <- FALSE
-        parsed$reason <- "layout-diff"
-        parsed$diff_count <- NA_integer_
-        parsed$diff_percentage <- NA_real_
-      }
+  # Without --fail-on-layout, odiff < 4.3.5 compares only the area that
+  # differently sized images share, reporting a match or too small a pixel
+  # diff; detect that case from the image headers
+  check_layout <- !isTRUE(fail_on_layout) &&
+    parsed$reason %in% c("match", "pixel-diff") &&
+    .odiff_older_than("4.3.5")
+  if (check_layout || identical(parsed$reason, "pixel-diff")) {
+    d1 <- .image_dimensions(img1)
+    d2 <- .image_dimensions(img2)
+    dims_known <- !is.null(d1) && !is.null(d2)
+    if (check_layout && dims_known && !isTRUE(all(d1 == d2))) {
+      parsed$match <- FALSE
+      parsed$reason <- "layout-diff"
+      parsed$diff_count <- NA_integer_
+      parsed$diff_percentage <- NA_real_
+    } else if (identical(parsed$reason, "pixel-diff") && dims_known &&
+               !is.na(parsed$diff_count)) {
+      # odiff prints the percentage rounded to 2 decimal places, so recompute
+      # it from the count; odiff divides by max width times max height
+      parsed$diff_percentage <- 100 * parsed$diff_count / prod(pmax(d1, d2))
     }
   }
 
