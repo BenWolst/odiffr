@@ -16,3 +16,4 @@
 ^.*\.tar\.gz$
 ^inst/ci-bench/
 ^tests/testthat/_odiffr$
+^dev$
