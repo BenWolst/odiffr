@@ -213,3 +213,51 @@ test_that("expect_images_differ() fails for a difference within tolerance", {
   expect_failure(expect_images_differ(img1, img2, max_diff_pixels = 1),
                  "unexpectedly matches")
 })
+
+# testthat helpers -------------------------------------------------------------
+
+test_that("expect_images_match() passes within tolerance and leaves no diff", {
+  skip_if_no_odiff()
+  diff_dir <- withr::local_tempdir()
+  withr::local_options(odiffr.diff_dir = diff_dir)
+  img1 <- create_test_image(1000, 1000, "red")
+  img2 <- create_modified_image(img1, "pixel")
+  on.exit(unlink(c(img1, img2)), add = TRUE)
+
+  # A failing run leaves a diff image ...
+  expect_failure(expect_images_match(img2, img1))
+  expect_length(list.files(diff_dir), 1)
+
+  # ... which a later pass within tolerance removes
+  expect_success(expect_images_match(img2, img1, max_diff_pixels = 1))
+  expect_length(list.files(diff_dir), 0)
+
+  res <- expect_images_match(img2, img1, max_diff_percent = 1e-4)
+  expect_equal(res$reason, "within-tolerance")
+  expect_failure(expect_images_match(img2, img1, max_diff_pixels = 0))
+})
+
+test_that("compare_file_odiff() returns TRUE within tolerance", {
+  skip_if_no_odiff()
+  diff_dir <- withr::local_tempdir()
+  # 100x100 red with a 21x21 white square: 441 differing pixels (4.41%)
+  old <- create_test_image(100, 100, "red")
+  new <- create_modified_image(old, "region")
+  on.exit(unlink(c(old, new)), add = TRUE)
+
+  expect_silent(res <- compare_file_odiff(diff_dir = diff_dir,
+                                          max_diff_pixels = 441)(old, new))
+  expect_true(res)
+  expect_length(list.files(diff_dir, recursive = TRUE), 0)
+
+  expect_true(compare_file_odiff(diff_dir = FALSE,
+                                 max_diff_percent = 4.41)(old, new))
+  expect_message(expect_false(
+    compare_file_odiff(diff_dir = FALSE, max_diff_pixels = 440)(old, new)
+  ), "pixels differ")
+})
+
+test_that("compare_file_odiff() validates the tolerance when created", {
+  expect_error(compare_file_odiff(max_diff_percent = -1), "max_diff_percent")
+  expect_error(compare_file_odiff(max_diff_pixels = 0.5), "max_diff_pixels")
+})

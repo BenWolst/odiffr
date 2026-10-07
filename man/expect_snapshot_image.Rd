@@ -14,6 +14,8 @@ expect_snapshot_image(
   plot_options = NULL,
   variant = NULL,
   ...,
+  max_diff_percent = NULL,
+  max_diff_pixels = NULL,
   preset = NULL,
   diff_dir = getOption("odiffr.snapshot_diff_dir")
 )
@@ -56,6 +58,13 @@ section on platform differences.}
 
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}} (via
 \code{\link[=compare_file_odiff]{compare_file_odiff()}}).}
+
+\item{max_diff_percent, max_diff_pixels}{Image-level tolerance: the largest
+percentage (0 to 100) and/or number of differing pixels to accept.
+\code{NULL} (the default) accepts no difference. A comparison within the
+tolerance passes and keeps the original snapshot, so differences cannot
+accumulate. Images of different sizes always fail. See the "Tolerance"
+section of \code{\link[=compare_images]{compare_images()}} before using this.}
 
 \item{preset}{Optional name of a comparison preset, see \code{\link[=odiff_preset]{odiff_preset()}}:
 \code{"strict"}, \code{"default"}, \code{"screenshot"} or \code{"cross_platform"}. The

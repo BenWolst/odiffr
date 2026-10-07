@@ -754,3 +754,36 @@ test_that("snapshot failure message shows tiny differences as <0.01%", {
   msg <- odiffr:::.snapshot_failure_message(result, "square.png", NULL)
   expect_equal(msg, "odiff: <0.01% pixels differ (15 px) in 'square.png'; no diff image")
 })
+
+test_that("expect_snapshot_image() passes within tolerance and keeps the baseline", {
+  skip_if_no_odiff()
+  skip_if_not_installed("png")
+  withr::local_options(odiffr.snapshot_diff_dir = withr::local_tempdir())
+
+  img_dir <- withr::local_tempdir()
+  img <- write_snapshot_png(file.path(img_dir, "img.png"))
+  test_file <- local_snapshot_project(snap_body(img, max_diff_pixels = 1681))
+  snap_dir <- file.path(dirname(test_file), "_snaps", "img")
+  snap <- file.path(snap_dir, "square.png")
+  snap_new <- file.path(snap_dir, "square.new.png")
+
+  # First run records the baseline
+  res <- run_snapshot_test(test_file)
+  expect_equal(res$failed, 0)
+  baseline <- readBin(snap, "raw", 1e5)
+
+  # A 1681-pixel change is within the tolerance: pass, baseline unchanged
+  write_snapshot_png(img, modify = "region")
+  res <- run_snapshot_test(test_file)
+  expect_equal(res$failed, 0)
+  expect_false(file.exists(snap_new))
+  expect_identical(readBin(snap, "raw", 1e5), baseline)
+
+  # One pixel fewer allowed: fails as before (keep the edition line that
+  # local_snapshot_project() writes first)
+  writeLines(c("testthat::local_edition(3)",
+               snap_body(img, max_diff_pixels = 1680)), test_file)
+  res <- run_snapshot_test(test_file)
+  expect_equal(res$failed, 1)
+  expect_true(file.exists(snap_new))
+})

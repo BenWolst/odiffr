@@ -33,6 +33,12 @@
 #' @param variant If not `NULL`, the snapshot is stored in a
 #'   variant-specific subdirectory (`_snaps/<variant>/<file>/`). See the
 #'   section on platform differences.
+#' @param max_diff_percent,max_diff_pixels Image-level tolerance: the largest
+#'   percentage (0 to 100) and/or number of differing pixels to accept.
+#'   `NULL` (the default) accepts no difference. A comparison within the
+#'   tolerance passes and keeps the original snapshot, so differences cannot
+#'   accumulate. Images of different sizes always fail. See the "Tolerance"
+#'   section of [compare_images()] before using this.
 #' @param ... Additional arguments passed to [odiff_run()] (via
 #'   [compare_file_odiff()]).
 #' @param preset Optional name of a comparison preset, see [odiff_preset()]:
@@ -147,6 +153,8 @@ expect_snapshot_image <- function(x,
                                   plot_options = NULL,
                                   variant = NULL,
                                   ...,
+                                  max_diff_percent = NULL,
+                                  max_diff_pixels = NULL,
                                   preset = NULL,
                                   diff_dir = getOption("odiffr.snapshot_diff_dir")) {
   expr_label <- deparse(substitute(x))
@@ -158,6 +166,8 @@ expect_snapshot_image <- function(x,
   args <- list(
     ignore_regions = ignore_regions,
     fail_on_layout = fail_on_layout,
+    max_diff_percent = max_diff_percent,
+    max_diff_pixels = max_diff_pixels,
     preset = preset,
     diff_dir = diff_dir
   )
@@ -265,6 +275,8 @@ compare_file_odiff <- function(threshold = 0.1,
                                ignore_regions = NULL,
                                fail_on_layout = TRUE,
                                ...,
+                               max_diff_percent = NULL,
+                               max_diff_pixels = NULL,
                                preset = NULL,
                                diff_dir = getOption("odiffr.snapshot_diff_dir")) {
   if (!is.null(preset)) {
@@ -273,12 +285,16 @@ compare_file_odiff <- function(threshold = 0.1,
     if (missing(antialiasing)) antialiasing <- values$antialiasing
   }
   .check_snapshot_diff_dir(diff_dir)
+  .validate_max_diff_percent(max_diff_percent)
+  .validate_max_diff_pixels(max_diff_pixels)
 
   # Force arguments now so later changes in the caller do not leak in
   force(threshold)
   force(antialiasing)
   force(ignore_regions)
   force(fail_on_layout)
+  force(max_diff_percent)
+  force(max_diff_pixels)
   force(diff_dir)
   dots <- list(...)
 
@@ -298,7 +314,9 @@ compare_file_odiff <- function(threshold = 0.1,
         threshold = threshold,
         antialiasing = antialiasing,
         fail_on_layout = fail_on_layout,
-        ignore_regions = ignore_regions
+        ignore_regions = ignore_regions,
+        max_diff_percent = max_diff_percent,
+        max_diff_pixels = max_diff_pixels
       ),
       dots
     ))
