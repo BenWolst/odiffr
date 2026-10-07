@@ -26,7 +26,8 @@ test_that("compare_images reports odiff error text in error column", {
   expect_equal(names(result)[ncol(result)], "error")
   expect_type(result$error, "character")
   expect_false(is.na(result$error))
-  expect_match(result$error, "Could not load", fixed = TRUE)
+  # odiff 4.2.x says "Failed to load", other versions "Could not load"
+  expect_match(result$error, "(Could not|Failed to) load")
 })
 
 test_that("compare_images error column is NA for successful comparisons", {
@@ -87,7 +88,7 @@ test_that("compare_images_batch carries error column through", {
   expect_named(result, batch_cols)
   expect_true(is.na(result$error[1]))
   expect_equal(result$reason[2], "error")
-  expect_match(result$error[2], "Could not load", fixed = TRUE)
+  expect_match(result$error[2], "(Could not|Failed to) load")
 })
 
 # ---- Batch robustness ------------------------------------------------------

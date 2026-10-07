@@ -313,7 +313,8 @@ test_that("expect_images_match failure message includes odiff error text", {
   )
   expect_s3_class(err, "expectation_failure")
   expect_match(err$message, "Reason: error", fixed = TRUE)
-  expect_match(err$message, "Could not load", fixed = TRUE)
+  # odiff 4.2.x says "Failed to load", other versions "Could not load"
+  expect_match(err$message, "(Could not|Failed to) load")
 })
 
 test_that("expect_images_differ fails (not passes) on comparison error", {
@@ -324,7 +325,7 @@ test_that("expect_images_differ fails (not passes) on comparison error", {
   writeLines("not a png", bad)
   on.exit(unlink(c(img, bad)), add = TRUE)
 
-  expect_failure(expect_images_differ(img, bad), "Could not load")
+  expect_failure(expect_images_differ(img, bad), "(Could not|Failed to) load")
 
   err <- tryCatch(
     expect_images_differ(img, bad),
