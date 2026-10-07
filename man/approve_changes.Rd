@@ -75,7 +75,9 @@ Rows with \code{reason = "match"} are never modified, and rows with
 \code{reason = "error"} cannot be approved (the comparison itself failed, so
 there is no valid current image to accept); they are reported as skipped.
 Rows whose \code{img1}/\code{img2} are not files (e.g. \code{"<magick-image>"} labels)
-are skipped as well.
+are skipped as well. Rows with \code{reason = "within-tolerance"} passed
+within a tolerance (see \code{\link[=compare_images]{compare_images()}}) and are skipped unless
+selected with \code{which} or listed in \code{reasons}.
 
 Parent directories of baselines are created as needed. A failed copy or
 deletion is reported (action \code{"failed"}) and does not stop the remaining

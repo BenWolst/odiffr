@@ -12,6 +12,8 @@ expect_images_match(
   antialiasing = FALSE,
   fail_on_layout = TRUE,
   ignore_regions = NULL,
+  max_diff_percent = NULL,
+  max_diff_pixels = NULL,
   ...,
   info = NULL,
   label = NULL
@@ -44,6 +46,12 @@ dimensions. Default is \code{TRUE} for tests (stricter than \code{\link[=compare
 \item{ignore_regions}{List of regions to ignore during comparison.
 Use \code{\link[=ignore_region]{ignore_region()}} to create regions, or pass a data.frame with
 columns \code{x1}, \code{y1}, \code{x2}, \code{y2}.}
+
+\item{max_diff_percent, max_diff_pixels}{Image-level tolerance. \code{NULL}
+(the default) for none, or the largest percentage of differing pixels
+(0 to 100, on the scale of \code{diff_percentage}) and/or the largest number
+of differing pixels to accept. Each limit is inclusive; if both are
+given, both must hold. See "Tolerance".}
 
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}}.}
 
@@ -78,11 +86,15 @@ session would produce the same name (e.g. identical basenames in different
 directories), the parent directory names, or else a numeric suffix, are
 added. A stale diff image left by a previous failing run is removed when
 the expectation is run again (odiff writes no diff image when the images
-match).
+match). With \code{max_diff_percent} or \code{max_diff_pixels}, a small pixel
+difference passes (see the "Tolerance" section of \code{\link[=compare_images]{compare_images()}});
+no diff image is kept for it.
 
 \code{expect_images_differ()} asserts that two images are visually different.
 No diff image is saved since there's nothing to debug when images match
-unexpectedly.
+unexpectedly. It also accepts \code{max_diff_percent} and \code{max_diff_pixels}
+(through \code{...}), and then requires the images to differ by more than
+the tolerance.
 
 If odiff cannot compare the images (\code{reason == "error"}, e.g. a file that
 cannot be loaded or has an unsupported format), both expectations fail and

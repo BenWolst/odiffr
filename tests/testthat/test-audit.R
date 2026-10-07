@@ -296,3 +296,20 @@ test_that("JSON output errors helpfully without jsonlite", {
   audit_record(batch, file = csv, format = "csv", hash = "md5")
   expect_true(file.exists(csv))
 })
+
+test_that("audit_record() records tolerance parameters and reasons", {
+  dir <- withr::local_tempdir()
+  a <- write_bytes(dir, "a.png", 1:10)
+  b <- write_bytes(dir, "b.png", 1:12)
+  batch <- make_batch(match = TRUE, reason = "within-tolerance",
+                      diff_count = 3L, diff_percentage = 0.5,
+                      img1 = a, img2 = b)
+  out <- file.path(dir, "audit.csv")
+
+  audit_record(batch, file = out, format = "csv", hash = "md5",
+               params = list(max_diff_percent = 1))
+  csv <- utils::read.csv(out, stringsAsFactors = FALSE)
+  expect_equal(csv$reason, "within-tolerance")
+  expect_equal(csv$param_max_diff_percent, 1)
+  expect_true(is.na(csv$param_max_diff_pixels))
+})

@@ -272,6 +272,12 @@ batch_markdown <- function(object,
       summ$passed, .md_escape(.fmt_pct(summ$pass_rate * 100, 1))
     ))
   }
+  if (isTRUE(summ$tolerated > 0)) {
+    lines <- c(lines, sprintf(
+      "%d of the passing comparisons %s within tolerance.",
+      summ$tolerated, if (summ$tolerated == 1) "was" else "were"
+    ))
+  }
 
   if (!is.null(summ$reason_counts) && length(summ$reason_counts) > 0) {
     reasons <- names(summ$reason_counts)

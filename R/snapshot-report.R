@@ -22,7 +22,8 @@
 #' @param antialiasing Logical; if `TRUE`, ignore antialiased pixels.
 #'   Default is `FALSE` (or the value from `preset`).
 #' @param ... Additional arguments passed to [compare_images()] (and from
-#'   there to [odiff_run()]), e.g. `ignore_regions`.
+#'   there to [odiff_run()]), e.g. `ignore_regions` or `max_diff_percent`.
+#'   Use the settings of the tests that produced the snapshots.
 #' @param images For `"html"`: which images to show per snapshot, `"all"`
 #'   (default: baseline, new and diff side by side) or `"diff"`.
 #' @param embed For `"html"`: if `TRUE` (default), images are embedded so

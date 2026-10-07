@@ -1,5 +1,20 @@
 # odiffr (development version)
 
+## New features
+
+* `compare_images()` gains `max_diff_percent` and `max_diff_pixels`, an
+  opt-in image-level tolerance: a pixel difference up to the limit passes,
+  with `match = TRUE` and the new `reason = "within-tolerance"`, while
+  `diff_count` and `diff_percentage` still record it. Images of different
+  sizes never pass. `expect_images_match()`, `expect_snapshot_image()` and
+  `compare_file_odiff()` have the same arguments, and the batch, directory,
+  PDF and `snapshot_report()` functions accept them through `...`.
+  Within-tolerance snapshots keep their original baseline. `summary()` and
+  `batch_markdown()` report how many passes were within tolerance,
+  `approve_changes()` skips them unless selected, and `audit_record()` has
+  columns for both parameters and warns when passes within tolerance are
+  recorded without the limits used.
+
 ## Bug fixes
 
 * `diff_percentage` is now computed from `diff_count` rather than taken from

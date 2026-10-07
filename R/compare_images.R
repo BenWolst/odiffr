@@ -28,12 +28,20 @@
 #'   [plot_options()]. `NULL` (the default) uses `plot_options()`: 7 x 5
 #'   inches at 96 dpi on a white background. Ignored for file and
 #'   magick-image inputs.
+#' @param max_diff_percent,max_diff_pixels Image-level tolerance. `NULL`
+#'   (the default) for none, or the largest percentage of differing pixels
+#'   (0 to 100, on the scale of `diff_percentage`) and/or the largest number
+#'   of differing pixels to accept. Each limit is inclusive; if both are
+#'   given, both must hold. See "Tolerance".
 #' @param ... Additional arguments passed to [odiff_run()].
 #'
 #' @return A tibble (if available) or data.frame with columns:
 #'   \describe{
-#'     \item{match}{Logical; `TRUE` if images match.}
-#'     \item{reason}{Character; comparison result reason.}
+#'     \item{match}{Logical; `TRUE` if images match, or differ within the
+#'       tolerance (see `max_diff_percent`).}
+#'     \item{reason}{Character; `"match"`, `"pixel-diff"`, `"layout-diff"`,
+#'       `"error"`, or `"within-tolerance"` for a pixel difference accepted
+#'       by `max_diff_percent`/`max_diff_pixels`.}
 #'     \item{diff_count}{Integer; number of different pixels.}
 #'     \item{diff_percentage}{Numeric; percentage of different pixels.}
 #'     \item{diff_output}{Character; path to diff image, or `NA`.}
@@ -44,6 +52,23 @@
 #'       `reason` is `"error"` (e.g. an image could not be loaded or has an
 #'       unsupported format), otherwise `NA`. This is always the last column.}
 #'   }
+#'
+#' @section Tolerance:
+#' By default any differing pixel (after `threshold`, `antialiasing` and
+#' `ignore_regions`) makes a comparison fail. `max_diff_percent` and
+#' `max_diff_pixels` accept a pixel difference up to a limit instead: the
+#' result then has `match = TRUE` and `reason = "within-tolerance"`, and
+#' `diff_count`, `diff_percentage` and `diff_output` still describe the
+#' difference. A tolerance never applies to images of different sizes (even
+#' with `fail_on_layout = FALSE`), to errors, or when the image dimensions
+#' cannot be read (non-PNG images without the magick package).
+#'
+#' Use a tolerance with care. Font rendering differs between systems, and
+#' for plots it can change a few percent of pixels, while real regressions
+#' are often tiny: a dropped data point or an edited axis label can be well
+#' under 0.1% of a plot. A tolerance large enough to absorb font differences
+#' hides such changes, so it is best kept for comparisons across
+#' environments, with exact matching elsewhere.
 #'
 #' @seealso [odiff_run()] for the low-level interface,
 #'   [ignore_region()] for creating ignore regions.
@@ -90,7 +115,12 @@ compare_images <- function(img1, img2,
                            fail_on_layout = FALSE,
                            ignore_regions = NULL,
                            plot_options = NULL,
+                           max_diff_percent = NULL,
+                           max_diff_pixels = NULL,
                            ...) {
+  .validate_max_diff_percent(max_diff_percent)
+  .validate_max_diff_pixels(max_diff_pixels)
+
   # Resolve image inputs (paths, magick objects and plots)
   img1_resolved <- .resolve_image_input(img1, "img1",
                                         plot_options = plot_options)
@@ -116,6 +146,9 @@ compare_images <- function(img1, img2,
     ...
   )
 
+  # Image-level tolerance (applied before temporary plot files are removed)
+  result <- .apply_tolerance(result, max_diff_percent, max_diff_pixels)
+
   # Build output data frame
   df <- data.frame(
     match = result$match,
@@ -135,6 +168,51 @@ compare_images <- function(img1, img2,
   } else {
     df
   }
+}
+
+# Internal: accept a small pixel difference under an image-level tolerance.
+# `result` is an odiff_run() result. It is returned with match = TRUE and
+# reason = "within-tolerance" when odiff reported a pixel difference with a
+# count, both images have the same, readable dimensions (a size change always
+# fails), and every given limit holds (limits are inclusive).
+.apply_tolerance <- function(result, max_diff_percent = NULL,
+                             max_diff_pixels = NULL) {
+  if (is.null(max_diff_percent) && is.null(max_diff_pixels)) {
+    return(result)
+  }
+  if (!identical(result$reason, "pixel-diff") || is.na(result$diff_count)) {
+    return(result)
+  }
+  # odiff_run() attaches the dimensions it read for a pixel difference
+  dims <- attr(result, "image_dims")
+  if (is.null(dims)) {
+    dims <- list(.image_dimensions(result$img1),
+                 .image_dimensions(result$img2))
+  }
+  d1 <- dims[[1]]
+  d2 <- dims[[2]]
+  if (is.null(d1) || is.null(d2)) {
+    if (!isTRUE(.odiffr_env$tolerance_dims_warned)) {
+      .odiffr_env$tolerance_dims_warned <- TRUE
+      warning("max_diff_percent/max_diff_pixels not applied: could not read ",
+              "the image dimensions. Install the magick package to compare ",
+              "non-PNG images with a tolerance. (Shown once per session.)",
+              call. = FALSE)
+    }
+    return(result)
+  }
+  if (!isTRUE(all(d1 == d2))) {
+    return(result)
+  }
+  within <- (is.null(max_diff_pixels) ||
+               result$diff_count <= max_diff_pixels) &&
+    (is.null(max_diff_percent) ||
+       isTRUE(result$diff_percentage <= max_diff_percent))
+  if (within) {
+    result$match <- TRUE
+    result$reason <- "within-tolerance"
+  }
+  result
 }
 
 # Internal: extract odiff's error message from an odiff_run() result.
@@ -178,7 +256,8 @@ compare_images <- function(img1, img2,
 #'   detected), capped at the number of pairs, and limited to 2 when the
 #'   `_R_CHECK_LIMIT_CORES_` environment variable is `"TRUE"`/`"true"` or
 #'   `"warn"` (as during `R CMD check --as-cran`).
-#' @param ... Additional arguments passed to [compare_images()].
+#' @param ... Additional arguments passed to [compare_images()], e.g.
+#'   `threshold` or `max_diff_percent`.
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
 #'   containing one row per comparison with all columns from [compare_images()]
@@ -358,6 +437,11 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 # pair_id for each element of `pairs_list`.
 .compare_pairs <- function(pairs_list, ids, diff_dir = NULL,
                            parallel = FALSE, ...) {
+  # Fail once, up front, rather than with an error row per pair
+  dots <- list(...)
+  .validate_max_diff_percent(dots[["max_diff_percent"]])
+  .validate_max_diff_pixels(dots[["max_diff_pixels"]])
+
   if (length(pairs_list) == 0) {
     return(.as_odiffr_batch(list()))
   }
@@ -469,7 +553,8 @@ compare_images_batch <- function(pairs, diff_dir = NULL, parallel = FALSE, ...) 
 #'   are created.
 #' @param parallel Logical; if `TRUE`, compare images in parallel. See
 #'   [compare_images_batch()] for details.
-#' @param ... Additional arguments passed to [compare_images_batch()].
+#' @param ... Additional arguments passed to [compare_images_batch()] (and
+#'   on to [compare_images()]), e.g. `max_diff_percent`.
 #'
 #' @return A tibble (if available) or data.frame with class `odiffr_batch`,
 #'   with one row per baseline image (in baseline file order), containing all
@@ -649,7 +734,8 @@ compare_image_dirs <- function(baseline_dir,
 #'   the diff image only, or `"all"` for baseline, current and diff images
 #'   side by side. See [batch_report()].
 #' @param ... Additional arguments passed to [compare_image_dirs()] (e.g.
-#'   `threshold`, `antialiasing`, `pattern`, `recursive`).
+#'   `threshold`, `antialiasing`, `pattern`, `recursive`, or
+#'   `max_diff_percent` for an image-level tolerance).
 #'
 #' @return The `odiffr_batch` results (invisibly). The HTML report is written
 #'   to `output_file` as a side effect.

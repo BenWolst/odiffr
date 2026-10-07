@@ -39,7 +39,8 @@ tests that produced the snapshots to get the same verdicts.}
 Default is \code{FALSE} (or the value from \code{preset}).}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}} (and from
-there to \code{\link[=odiff_run]{odiff_run()}}), e.g. \code{ignore_regions}.}
+there to \code{\link[=odiff_run]{odiff_run()}}), e.g. \code{ignore_regions} or \code{max_diff_percent}.
+Use the settings of the tests that produced the snapshots.}
 
 \item{images}{For \code{"html"}: which images to show per snapshot, \code{"all"}
 (default: baseline, new and diff side by side) or \code{"diff"}.}

@@ -32,7 +32,11 @@ SHA-256 requires the openssl or digest package; MD5 uses base R
 carry their parameters, which are used when \code{params} is \code{NULL}.
 \code{\link[=compare_images]{compare_images()}} and batch results do not, so pass the parameters
 used here to record them; otherwise they are recorded as unknown
-(\code{null} in JSON, \code{NA} in CSV).}
+(\code{null} in JSON, \code{NA} in CSV). \code{\link[=odiff_run]{odiff_run()}} results never include the
+tolerance parameters (\code{max_diff_percent}, \code{max_diff_pixels}), which are
+applied by \code{\link[=compare_images]{compare_images()}}; pass them in \code{params} to record them.
+A warning is given when comparisons passed within a tolerance but
+\code{params} records neither limit.}
 }
 \value{
 The record, a list with elements \code{header} and \code{comparisons} (see
@@ -86,7 +90,7 @@ does not exist (e.g. \code{"missing"} rows) or is not a file (e.g.
 \item{diff_output_size}{Numeric; size of the diff image, or \code{NA}.}
 \item{match}{Logical; whether the images matched.}
 \item{reason}{Character; \code{"match"}, \code{"pixel-diff"}, \code{"layout-diff"},
-\code{"error"} or \code{"missing"}.}
+\code{"error"}, \code{"missing"} or \code{"within-tolerance"}.}
 \item{diff_count}{Integer; number of different pixels, or \code{NA}.}
 \item{diff_percentage}{Numeric; percentage of different pixels, or
 \code{NA}.}
@@ -104,7 +108,8 @@ columns, preceded by the header fields repeated on every row (except
 \code{params}) and followed by one \verb{param_<name>} column per parameter. The
 standard parameters (\code{threshold}, \code{antialiasing}, \code{fail_on_layout},
 \code{ignore_regions}, \code{diff_mask}, \code{diff_overlay}, \code{diff_color}, \code{reduce_ram},
-\code{enable_asm}) always have a column (\code{NA} when unknown); other parameters
+\code{enable_asm}, \code{max_diff_percent}, \code{max_diff_pixels}) always have a column
+(\code{NA} when unknown); other parameters
 passed in \code{params} are added after them.
 }
 \examples{

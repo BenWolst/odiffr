@@ -204,12 +204,15 @@ odiff_run <- function(img1, img2,
   # Without --fail-on-layout, odiff < 4.3.5 compares only the area that
   # differently sized images share, reporting a match or too small a pixel
   # diff; detect that case from the image headers
+  image_dims <- NULL
   check_layout <- !isTRUE(fail_on_layout) &&
     parsed$reason %in% c("match", "pixel-diff") &&
     .odiff_older_than("4.3.5")
   if (check_layout || identical(parsed$reason, "pixel-diff")) {
     d1 <- .image_dimensions(img1)
     d2 <- .image_dimensions(img2)
+    # Kept for compare_images(), so the tolerance check need not read them again
+    image_dims <- list(d1, d2)
     dims_known <- !is.null(d1) && !is.null(d2)
     if (check_layout && dims_known && !isTRUE(all(d1 == d2))) {
       parsed$match <- FALSE
@@ -253,7 +256,11 @@ odiff_run <- function(img1, img2,
     enable_asm = isTRUE(enable_asm)
   )
 
-  structure(parsed, class = c("odiff_result", "list"))
+  result <- structure(parsed, class = c("odiff_result", "list"))
+  if (!is.null(image_dims)) {
+    attr(result, "image_dims") <- image_dims
+  }
+  result
 }
 
 # Run the odiff binary, capturing stdout and stderr separately.

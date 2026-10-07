@@ -33,13 +33,23 @@ anti-aliasing from run to run; odiff's anti-aliasing detection
 ignores those pixels. The colour threshold stays at 0.1 so that real
 colour changes are still caught.}
 \item{\code{"cross_platform"}}{\code{threshold = 0.2}, \code{antialiasing = TRUE}. For
-baselines shared across machines or operating systems. Also tolerates
-edges that move by up to about half a pixel, thicker anti-aliased
-borders and small colour or gamma shifts. The price: changes between
-colours of similar brightness (e.g. a blue element turning green) and
-very faint elements (light grey on white) can go unnoticed. Different
-fonts or text rendering are not tolerated; use snapshot variants or
-\code{ignore_regions} for those.}
+baselines shared across machines that render the same way apart from
+anti-aliasing, e.g. the same fonts and graphics device on another
+operating system or CPU. Also tolerates edges that move by up to about
+half a pixel, thicker anti-aliased borders and small colour or gamma
+shifts. The price: changes between colours of similar brightness
+(e.g. a blue element turning green), darkening or lightening without
+a change of hue (black turning to dark grey, \verb{#303030}) and very faint
+elements (light grey on white) can go unnoticed. It does little for
+different fonts or text rendering, which change
+the shape and position of glyphs rather than their colour. In one
+calibration of 640 plots rendered on five Linux distributions,
+raising the threshold from 0.1 to 0.2 left the 95th percentile of
+differing pixels almost unchanged (2.78\% and 2.75\%). Use snapshot
+variants or \code{ignore_regions} for font differences or, when one
+baseline must be checked across environments, an image-level
+tolerance (\code{max_diff_percent}, see the "Tolerance" section of
+\code{\link[=compare_images]{compare_images()}}).}
 }
 
 The values were calibrated with images rendered by ragg: shapes with
@@ -51,7 +61,9 @@ anti-aliasing-only differences fail (5 to 439 differing pixels); with
 \code{"screenshot"} they pass, except a 0.5 px shift of a bordered shape (2
 pixels), which \code{"cross_platform"} passes too. A blue to green recolouring
 is detected up to a threshold of 0.14, which is why \code{"screenshot"} keeps
-0.1. The calibration is part of the package's tests.
+0.1; a black patch turning \verb{#303030} is caught by \code{"screenshot"} and
+missed by \code{"cross_platform"}. The calibration is part of the package's
+tests.
 }
 \examples{
 odiff_preset("screenshot")

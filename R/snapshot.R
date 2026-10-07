@@ -33,6 +33,12 @@
 #' @param variant If not `NULL`, the snapshot is stored in a
 #'   variant-specific subdirectory (`_snaps/<variant>/<file>/`). See the
 #'   section on platform differences.
+#' @param max_diff_percent,max_diff_pixels Image-level tolerance: the largest
+#'   percentage (0 to 100) and/or number of differing pixels to accept.
+#'   `NULL` (the default) accepts no difference. A comparison within the
+#'   tolerance passes and keeps the original snapshot, so differences cannot
+#'   accumulate. Images of different sizes always fail. See the "Tolerance"
+#'   section of [compare_images()] before using this.
 #' @param ... Additional arguments passed to [odiff_run()] (via
 #'   [compare_file_odiff()]).
 #' @param preset Optional name of a comparison preset, see [odiff_preset()]:
@@ -88,9 +94,15 @@
 #'     [ragg::agg_png()], which gives consistent output across platforms.
 #'   \item Use a tolerant comparison (`preset = "screenshot"` or
 #'     `preset = "cross_platform"`, or `threshold`, `antialiasing = TRUE`,
-#'     `ignore_regions`).
+#'     `ignore_regions`) for anti-aliasing and sub-pixel differences.
 #'   \item Store separate snapshots per platform with `variant`, e.g.
-#'     `variant = Sys.info()[["sysname"]]`.
+#'     `variant = Sys.info()[["sysname"]]`. This is the reliable answer to
+#'     different fonts, which no colour threshold absorbs.
+#'   \item If one baseline must be checked on machines with different fonts,
+#'     accept a small share of differing pixels with `max_diff_percent`.
+#'     Choose the limit from measurements, and keep in mind that it also
+#'     hides real changes of that size (see the "Tolerance" section of
+#'     [compare_images()]).
 #' }
 #'
 #' @section Comparison with vdiffr:
@@ -147,6 +159,8 @@ expect_snapshot_image <- function(x,
                                   plot_options = NULL,
                                   variant = NULL,
                                   ...,
+                                  max_diff_percent = NULL,
+                                  max_diff_pixels = NULL,
                                   preset = NULL,
                                   diff_dir = getOption("odiffr.snapshot_diff_dir")) {
   expr_label <- deparse(substitute(x))
@@ -158,6 +172,8 @@ expect_snapshot_image <- function(x,
   args <- list(
     ignore_regions = ignore_regions,
     fail_on_layout = fail_on_layout,
+    max_diff_percent = max_diff_percent,
+    max_diff_pixels = max_diff_pixels,
     preset = preset,
     diff_dir = diff_dir
   )
@@ -265,6 +281,8 @@ compare_file_odiff <- function(threshold = 0.1,
                                ignore_regions = NULL,
                                fail_on_layout = TRUE,
                                ...,
+                               max_diff_percent = NULL,
+                               max_diff_pixels = NULL,
                                preset = NULL,
                                diff_dir = getOption("odiffr.snapshot_diff_dir")) {
   if (!is.null(preset)) {
@@ -273,12 +291,16 @@ compare_file_odiff <- function(threshold = 0.1,
     if (missing(antialiasing)) antialiasing <- values$antialiasing
   }
   .check_snapshot_diff_dir(diff_dir)
+  .validate_max_diff_percent(max_diff_percent)
+  .validate_max_diff_pixels(max_diff_pixels)
 
   # Force arguments now so later changes in the caller do not leak in
   force(threshold)
   force(antialiasing)
   force(ignore_regions)
   force(fail_on_layout)
+  force(max_diff_percent)
+  force(max_diff_pixels)
   force(diff_dir)
   dots <- list(...)
 
@@ -298,7 +320,9 @@ compare_file_odiff <- function(threshold = 0.1,
         threshold = threshold,
         antialiasing = antialiasing,
         fail_on_layout = fail_on_layout,
-        ignore_regions = ignore_regions
+        ignore_regions = ignore_regions,
+        max_diff_percent = max_diff_percent,
+        max_diff_pixels = max_diff_pixels
       ),
       dots
     ))
@@ -353,13 +377,23 @@ compare_file_odiff <- function(threshold = 0.1,
 #'     ignores those pixels. The colour threshold stays at 0.1 so that real
 #'     colour changes are still caught.}
 #'   \item{`"cross_platform"`}{`threshold = 0.2`, `antialiasing = TRUE`. For
-#'     baselines shared across machines or operating systems. Also tolerates
-#'     edges that move by up to about half a pixel, thicker anti-aliased
-#'     borders and small colour or gamma shifts. The price: changes between
-#'     colours of similar brightness (e.g. a blue element turning green) and
-#'     very faint elements (light grey on white) can go unnoticed. Different
-#'     fonts or text rendering are not tolerated; use snapshot variants or
-#'     `ignore_regions` for those.}
+#'     baselines shared across machines that render the same way apart from
+#'     anti-aliasing, e.g. the same fonts and graphics device on another
+#'     operating system or CPU. Also tolerates edges that move by up to about
+#'     half a pixel, thicker anti-aliased borders and small colour or gamma
+#'     shifts. The price: changes between colours of similar brightness
+#'     (e.g. a blue element turning green), darkening or lightening without
+#'     a change of hue (black turning to dark grey, `#303030`) and very faint
+#'     elements (light grey on white) can go unnoticed. It does little for
+#'     different fonts or text rendering, which change
+#'     the shape and position of glyphs rather than their colour. In one
+#'     calibration of 640 plots rendered on five Linux distributions,
+#'     raising the threshold from 0.1 to 0.2 left the 95th percentile of
+#'     differing pixels almost unchanged (2.78% and 2.75%). Use snapshot
+#'     variants or `ignore_regions` for font differences or, when one
+#'     baseline must be checked across environments, an image-level
+#'     tolerance (`max_diff_percent`, see the "Tolerance" section of
+#'     [compare_images()]).}
 #' }
 #'
 #' The values were calibrated with images rendered by ragg: shapes with
@@ -371,7 +405,9 @@ compare_file_odiff <- function(threshold = 0.1,
 #' `"screenshot"` they pass, except a 0.5 px shift of a bordered shape (2
 #' pixels), which `"cross_platform"` passes too. A blue to green recolouring
 #' is detected up to a threshold of 0.14, which is why `"screenshot"` keeps
-#' 0.1. The calibration is part of the package's tests.
+#' 0.1; a black patch turning `#303030` is caught by `"screenshot"` and
+#' missed by `"cross_platform"`. The calibration is part of the package's
+#' tests.
 #'
 #' @return A named list with elements `threshold` and `antialiasing`.
 #'

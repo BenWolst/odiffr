@@ -35,7 +35,8 @@ are created.}
 \item{parallel}{Logical; if \code{TRUE}, compare images in parallel. See
 \code{\link[=compare_images_batch]{compare_images_batch()}} for details.}
 
-\item{...}{Additional arguments passed to \code{\link[=compare_images_batch]{compare_images_batch()}}.}
+\item{...}{Additional arguments passed to \code{\link[=compare_images_batch]{compare_images_batch()}} (and
+on to \code{\link[=compare_images]{compare_images()}}), e.g. \code{max_diff_percent}.}
 }
 \value{
 A tibble (if available) or data.frame with class \code{odiffr_batch},

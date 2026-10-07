@@ -51,7 +51,9 @@ in pixels of the rendered page, so they depend on \code{dpi}: a point at
 \code{\link[=compare_images_batch]{compare_images_batch()}} for details.}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}} via
-\code{\link[=compare_images_batch]{compare_images_batch()}}, e.g. \code{fail_on_layout = TRUE}.}
+\code{\link[=compare_images_batch]{compare_images_batch()}}, e.g. \code{fail_on_layout = TRUE}. Use
+\code{max_diff_percent} or \code{max_diff_pixels} for an image-level tolerance,
+see \code{\link[=compare_images]{compare_images()}}.}
 }
 \value{
 A tibble (if available) or data.frame with class \code{odiffr_batch},

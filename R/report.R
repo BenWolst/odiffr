@@ -219,6 +219,12 @@ batch_report <- function(object,
 </div>\n',
     summ$passed, pass_label, summ$failed, fail_label
   )
+  if (isTRUE(summ$tolerated > 0)) {
+    stats_html <- paste0(stats_html, sprintf(
+      '<p class="tolerance">Within tolerance: %d (counted as passed)</p>\n',
+      as.integer(summ$tolerated)
+    ))
+  }
 
   reasons_html <- ""
   if (!is.null(summ$reason_counts) && length(summ$reason_counts) > 0) {

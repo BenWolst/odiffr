@@ -14,6 +14,8 @@ expect_snapshot_image(
   plot_options = NULL,
   variant = NULL,
   ...,
+  max_diff_percent = NULL,
+  max_diff_pixels = NULL,
   preset = NULL,
   diff_dir = getOption("odiffr.snapshot_diff_dir")
 )
@@ -56,6 +58,13 @@ section on platform differences.}
 
 \item{...}{Additional arguments passed to \code{\link[=odiff_run]{odiff_run()}} (via
 \code{\link[=compare_file_odiff]{compare_file_odiff()}}).}
+
+\item{max_diff_percent, max_diff_pixels}{Image-level tolerance: the largest
+percentage (0 to 100) and/or number of differing pixels to accept.
+\code{NULL} (the default) accepts no difference. A comparison within the
+tolerance passes and keeps the original snapshot, so differences cannot
+accumulate. Images of different sizes always fail. See the "Tolerance"
+section of \code{\link[=compare_images]{compare_images()}} before using this.}
 
 \item{preset}{Optional name of a comparison preset, see \code{\link[=odiff_preset]{odiff_preset()}}:
 \code{"strict"}, \code{"default"}, \code{"screenshot"} or \code{"cross_platform"}. The
@@ -125,9 +134,15 @@ devices and installed fonts. To reduce spurious failures:
 \code{\link[ragg:agg_png]{ragg::agg_png()}}, which gives consistent output across platforms.
 \item Use a tolerant comparison (\code{preset = "screenshot"} or
 \code{preset = "cross_platform"}, or \code{threshold}, \code{antialiasing = TRUE},
-\code{ignore_regions}).
+\code{ignore_regions}) for anti-aliasing and sub-pixel differences.
 \item Store separate snapshots per platform with \code{variant}, e.g.
-\code{variant = Sys.info()[["sysname"]]}.
+\code{variant = Sys.info()[["sysname"]]}. This is the reliable answer to
+different fonts, which no colour threshold absorbs.
+\item If one baseline must be checked on machines with different fonts,
+accept a small share of differing pixels with \code{max_diff_percent}.
+Choose the limit from measurements, and keep in mind that it also
+hides real changes of that size (see the "Tolerance" section of
+\code{\link[=compare_images]{compare_images()}}).
 }
 }
 

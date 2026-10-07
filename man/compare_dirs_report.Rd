@@ -53,7 +53,8 @@ the diff image only, or \code{"all"} for baseline, current and diff images
 side by side. See \code{\link[=batch_report]{batch_report()}}.}
 
 \item{...}{Additional arguments passed to \code{\link[=compare_image_dirs]{compare_image_dirs()}} (e.g.
-\code{threshold}, \code{antialiasing}, \code{pattern}, \code{recursive}).}
+\code{threshold}, \code{antialiasing}, \code{pattern}, \code{recursive}, or
+\code{max_diff_percent} for an image-level tolerance).}
 }
 \value{
 The \code{odiffr_batch} results (invisibly). The HTML report is written

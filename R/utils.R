@@ -295,6 +295,32 @@
   invisible(threshold)
 }
 
+.validate_max_diff_percent <- function(max_diff_percent) {
+  if (is.null(max_diff_percent)) {
+    return(invisible(NULL))
+  }
+  if (!is.numeric(max_diff_percent) || length(max_diff_percent) != 1 ||
+      !is.finite(max_diff_percent) || max_diff_percent < 0 ||
+      max_diff_percent > 100) {
+    stop("max_diff_percent must be NULL or a single number between 0 and 100.",
+         call. = FALSE)
+  }
+  invisible(max_diff_percent)
+}
+
+.validate_max_diff_pixels <- function(max_diff_pixels) {
+  if (is.null(max_diff_pixels)) {
+    return(invisible(NULL))
+  }
+  if (!is.numeric(max_diff_pixels) || length(max_diff_pixels) != 1 ||
+      !is.finite(max_diff_pixels) || max_diff_pixels < 0 ||
+      max_diff_pixels != round(max_diff_pixels)) {
+    stop("max_diff_pixels must be NULL or a single non-negative whole number.",
+         call. = FALSE)
+  }
+  invisible(max_diff_pixels)
+}
+
 .validate_diff_color <- function(diff_color) {
   if (is.null(diff_color)) {
     return(invisible(NULL))

@@ -22,7 +22,8 @@ detected), capped at the number of pairs, and limited to 2 when the
 \verb{_R_CHECK_LIMIT_CORES_} environment variable is \code{"TRUE"}/\code{"true"} or
 \code{"warn"} (as during \verb{R CMD check --as-cran}).}
 
-\item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}}.}
+\item{...}{Additional arguments passed to \code{\link[=compare_images]{compare_images()}}, e.g.
+\code{threshold} or \code{max_diff_percent}.}
 }
 \value{
 A tibble (if available) or data.frame with class \code{odiffr_batch},

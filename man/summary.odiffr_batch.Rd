@@ -26,6 +26,8 @@ An \code{odiffr_batch_summary} object with the following components:
 \item{total}{Total number of comparisons.}
 \item{passed}{Number of matching image pairs.}
 \item{failed}{Number of non-matching image pairs.}
+\item{tolerated}{Number of passing comparisons that differ within a
+tolerance (\code{reason = "within-tolerance"}, see \code{\link[=compare_images]{compare_images()}}).}
 \item{pass_rate}{Proportion of passing comparisons (0 to 1), or \code{NA}
 for an empty batch (zero comparisons).}
 \item{reason_counts}{Table of failure reasons (NULL if no failures).}
