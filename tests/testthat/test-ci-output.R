@@ -242,6 +242,7 @@ test_that("CI outputs work with real compare_image_dirs() results", {
 })
 
 test_that("batch_markdown and batch_junit show tiny percentages as <0.01%", {
+  withr::local_envvar(GITHUB_STEP_SUMMARY = NA)
   batch <- make_batch(match = c(FALSE, rep(TRUE, 1999)),
                       reason = c("pixel-diff", rep("match", 1999)),
                       diff_count = c(15L, rep(0L, 1999)),
