@@ -1,3 +1,22 @@
+# odiffr (development version)
+
+## Bug fixes
+
+* `diff_percentage` is now computed from `diff_count` rather than taken from
+  odiff's output, which is rounded to 2 decimal places. A handful of
+  differing pixels in a large image previously gave a failing comparison with
+  `diff_percentage = 0`.
+* With `fail_on_layout = FALSE` (the default for `compare_images()` and the
+  batch, directory and PDF functions), odiff < 4.3.5 only compares the area
+  that differently sized images share, so a larger new image with a small
+  content change was reported as a tiny pixel difference. Such comparisons
+  are now reported as `reason = "layout-diff"`, as a size change with no
+  content change already was. odiff >= 4.3.5 counts the pixels outside the
+  shared area as different and is unaffected (previously odiffr applied its
+  size check up to odiff 4.5.0).
+* On odiff < 4.3.5, a PNG and an image in another format with the same
+  dimensions are no longer reported as a layout difference.
+
 # odiffr 0.6.0
 
 ## Breaking changes
