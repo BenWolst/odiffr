@@ -28,6 +28,7 @@ inst/doc/
 
 # Local dev
 .env
+dev/
 .vscode/
 CLAUDE.md
 .claude/
