@@ -1,123 +1,159 @@
-# Odiffr <img src="man/figures/logo.png" align="right" height="139" alt="Odiffr logo" />
+<h1 align="center">
+  <img src="man/figures/logo.svg" alt="odiffr logo: a pixel-art camel walking a desert dune at night" width="139" height="160"><br>
+  odiffr
+</h1>
+
+<p align="center">
+  <strong>Fast pixel-by-pixel image comparison for R.</strong><br>
+  Catch visual regressions in plots, Shiny apps, screenshots and PDFs,
+  powered by <a href="https://github.com/dmtrKovalenko/odiff">odiff</a>.
+</p>
 
 <!-- badges: start -->
-
-[![CRAN status](https://www.r-pkg.org/badges/version/odiffr)](https://CRAN.R-project.org/package=odiffr)
-[![R-CMD-check](https://github.com/BenWolst/odiffr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/BenWolst/odiffr/actions/workflows/R-CMD-check.yaml)
-[![Codecov](https://codecov.io/gh/BenWolst/odiffr/branch/main/graph/badge.svg)](https://app.codecov.io/gh/BenWolst/odiffr)
-
+<p align="center">
+  <a href="https://CRAN.R-project.org/package=odiffr"><img src="https://img.shields.io/cran/v/odiffr?style=flat-square&label=CRAN&color=0641a9" alt="CRAN version"></a>
+  <a href="https://github.com/BenWolst/odiffr/actions/workflows/R-CMD-check.yaml"><img src="https://img.shields.io/github/actions/workflow/status/BenWolst/odiffr/R-CMD-check.yaml?branch=main&style=flat-square&label=R%20CMD%20check" alt="R-CMD-check status"></a>
+  <a href="https://app.codecov.io/gh/BenWolst/odiffr"><img src="https://img.shields.io/codecov/c/github/BenWolst/odiffr?style=flat-square&label=coverage" alt="Test coverage"></a>
+  <a href="https://github.com/BenWolst/odiffr/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-0641a9?style=flat-square" alt="MIT license"></a>
+</p>
 <!-- badges: end -->
 
-Fast pixel-by-pixel image comparison for R, powered by [odiff](https://github.com/dmtrKovalenko/odiff).
+<p align="center" class="pkgdown-hide">
+  <a href="https://benwolst.github.io/odiffr/articles/getting-started.html"><img src="https://img.shields.io/badge/Get%20started-0641a9?style=for-the-badge" alt="Get started"></a>
+  <a href="https://benwolst.github.io/odiffr/"><img src="https://img.shields.io/badge/Docs-57606a?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://benwolst.github.io/odiffr/reference/"><img src="https://img.shields.io/badge/Reference-57606a?style=for-the-badge" alt="Function reference"></a>
+  <a href="https://benwolst.github.io/odiffr/news/"><img src="https://img.shields.io/badge/Changelog-57606a?style=for-the-badge" alt="Changelog"></a>
+</p>
 
-## Features
+<br>
 
-- **Fast**: odiff is ~6x faster than ImageMagick, optimised with SIMD (SSE2, AVX2, AVX512, NEON)
-- **Cross-platform**: Windows, macOS (Intel & Apple Silicon) and Linux
-- **Flexible inputs**: image files, magick-image objects, plots (ggplot2, base and grid graphics) and PDF pages
-- **Configurable**: threshold, antialiasing detection and ignore regions
-- **Testing**: testthat expectations, snapshot testing with `expect_snapshot_image()`, and a compare function for shinytest2 screenshots
-- **Batch workflows**: compare directories, approve changes, and report results as HTML, Markdown (GitHub job summaries) or JUnit XML
-- **Validated environments**: pinnable binary and machine-readable audit records
+<img src="man/figures/hero.png" alt="A chart, a changed version of the chart, and the diff image odiffr makes from them, with the changed line drawn in red" width="100%">
 
-## Installation
+<p align="center"><sub>Real odiffr output: the diff image comes from the call in step 2 below.</sub></p>
 
-Install odiffr:
+## Why odiffr
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Fast</strong><br>
+      odiff is written in Zig with SIMD, about 6x faster than ImageMagick in
+      <a href="https://github.com/dmtrKovalenko/odiff#benchmarks">its benchmarks</a>.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Takes what you have</strong><br>
+      PNG, JPEG, WEBP, TIFF and BMP files, magick images, ggplot2, base and
+      grid plots, and PDF pages.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Fits testthat</strong><br>
+      <code>expect_images_match()</code>, <code>expect_snapshot_image()</code>
+      and a comparison function for shinytest2 screenshots.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <strong>Ignores the noise</strong><br>
+      Thresholds, antialiasing detection, ignore regions and an overall
+      tolerance, with presets for screenshots and cross-platform runs.
+    </td>
+    <td valign="top">
+      <strong>Made for CI</strong><br>
+      HTML, Markdown and JUnit reports, a ready-made GitHub Actions workflow,
+      and <code>approve_changes()</code> to accept new baselines.
+    </td>
+    <td valign="top">
+      <strong>Auditable</strong><br>
+      Pin a validated binary and write JSON or CSV audit records with file
+      hashes. Core functions depend only on base R.
+    </td>
+  </tr>
+</table>
+
+## Get started in three steps
+
+1. **Install odiffr and the odiff binary.** `install_odiff()` downloads odiff
+   (>= 4.1.1) for your platform, with no Node.js needed.
+
+   ```r
+   install.packages("odiffr")
+   # or the development version: pak::pak("BenWolst/odiffr")
+   odiffr::install_odiff()
+   ```
+
+2. **Compare two images.** You get the result as a data frame and the changes
+   drawn in red in `diff.png`.
+
+   ```r
+   library(odiffr)
+   result <- compare_images("baseline.png", "current.png", diff_output = "diff.png",
+                            antialiasing = TRUE, diff_overlay = 0.75)
+   result$diff_count
+   #> [1] 3537
+   ```
+
+3. **Make it a test.** testthat stores the first image as the baseline and
+   fails when a later run differs.
+
+   ```r
+   test_that("the usage chart is unchanged", {
+     # usage_chart: a ggplot, a recorded plot or a function that draws one
+     expect_snapshot_image(usage_chart)
+   })
+   ```
+
+## What do you want to do?
+
+| Task | Start with |
+| --- | --- |
+| Compare two images, plots or magick images | [`compare_images()`](https://benwolst.github.io/odiffr/reference/compare_images.html) |
+| Test plots with testthat | [`expect_snapshot_image()`](https://benwolst.github.io/odiffr/reference/expect_snapshot_image.html), [`expect_images_match()`](https://benwolst.github.io/odiffr/reference/expect_images.html) |
+| Test a Shiny app | [`compare_file_odiff()`](https://benwolst.github.io/odiffr/reference/compare_file_odiff.html) and the [shinytest2 guide](https://benwolst.github.io/odiffr/articles/shinytest2.html) |
+| Test web pages, reports and htmlwidgets | The [web pages guide](https://benwolst.github.io/odiffr/articles/web-pages.html) |
+| Compare PDF reports page by page | [`compare_pdfs()`](https://benwolst.github.io/odiffr/reference/compare_pdfs.html) and the [PDF guide](https://benwolst.github.io/odiffr/articles/pdf-outputs.html) |
+| Compare folders and accept changes | [`compare_image_dirs()`](https://benwolst.github.io/odiffr/reference/compare_image_dirs.html), [`approve_changes()`](https://benwolst.github.io/odiffr/reference/approve_changes.html) |
+| Report results in CI | [`use_odiffr_ci()`](https://benwolst.github.io/odiffr/reference/use_odiffr_ci.html), [`batch_report()`](https://benwolst.github.io/odiffr/reference/batch_report.html) |
+| Keep an audit trail | [`audit_record()`](https://benwolst.github.io/odiffr/reference/audit_record.html) |
+
+## Examples
+
+<details>
+<summary><b>Comparison options</b>: sensitivity, antialiasing, ignore regions, tolerance</summary>
 
 ```r
-install.packages("odiffr")
+# Sensitivity (0-1, lower is stricter) and antialiasing detection
+compare_images("before.png", "after.png", threshold = 0.05, antialiasing = TRUE)
 
-# Or the development version from GitHub
-# install.packages("pak")
-pak::pak("BenWolst/odiffr")
-```
+# Fail straight away when the dimensions differ
+compare_images("before.png", "after.png", fail_on_layout = TRUE)
 
-Odiffr requires the odiff binary (>= 4.1.1). The easiest way to get it is
-from R, which downloads the binary for your platform to your user cache (no
-Node.js needed):
-
-```r
-odiffr::install_odiff()
-```
-
-In interactive sessions, odiffr also offers to do this the first time odiff is
-needed; it never downloads anything without asking. Alternatively, install
-odiff system-wide:
-
-```bash
-# npm (cross-platform)
-npm install -g odiff-bin
-
-# Or download binaries from https://github.com/dmtrKovalenko/odiff/releases
-```
-
-## Quick Start
-
-```r
-library(odiffr)
-
-result <- compare_images("baseline.png", "current.png", diff_output = "diff.png")
-result$match
-#> [1] FALSE
-result$diff_percentage
-#> [1] 2.45
-```
-
-## Comparing Images
-
-```r
-# Adjust sensitivity (0-1, lower = stricter) and ignore antialiased pixels
-compare_images("img1.png", "img2.png", threshold = 0.05, antialiasing = TRUE)
-
-# Fail immediately if dimensions differ
-compare_images("img1.png", "img2.png", fail_on_layout = TRUE)
-
-# Ignore areas with dynamic content, e.g. timestamps
-compare_images("img1.png", "img2.png",
-  ignore_regions = list(
-    ignore_region(0, 0, 200, 50),     # header
-    ignore_region(0, 500, 800, 600)   # footer
-  )
+# Skip areas with dynamic content, such as a timestamp
+compare_images("before.png", "after.png",
+  ignore_regions = list(ignore_region(0, 0, 200, 50))
 )
 
-# magick-image objects and plots work too
-compare_images(magick::image_read("baseline.png"), "current.png")
-
-# Low-level interface with every odiff option
-odiff_run("img1.png", "img2.png", diff_lines = TRUE)
+# Pass when up to 1% of pixels differ (development version)
+compare_images("before.png", "after.png", max_diff_percent = 1)$reason
+#> [1] "within-tolerance"
 ```
 
-When a comparison fails, `plot(odiff_run(...))` shows the baseline, current
-and diff images side by side, and `diff_image()` returns the diff as a
-magick image or raster.
+`plot(odiff_run(...))` shows the baseline, current and diff images side by
+side, and `diff_image()` returns the diff as a magick image or raster.
 
-## Testing
+</details>
 
-### Expectations
+<details>
+<summary><b>testthat expectations and snapshots</b></summary>
 
 ```r
-test_that("dashboard renders correctly", {
+test_that("the dashboard renders correctly", {
   expect_images_match("screenshots/current.png", "screenshots/baseline.png")
 })
 
-test_that("plot matches its baseline", {
-  p <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) + ggplot2::geom_point()
-  expect_images_match(p, test_path("baselines/scatter.png"),
-                      plot_options = plot_options(width = 6, height = 4))
+test_that("dark mode changes the page", {
+  expect_images_differ("screenshots/dark.png", "screenshots/light.png")
 })
-```
 
-Plots (ggplot objects, functions that draw a plot, and recorded plots) are
-rendered to PNG with ragg if installed. On failure, a diff image is saved to
-`tests/testthat/_odiffr/`.
-
-### Snapshot testing
-
-`expect_snapshot_image()` lets testthat manage the baselines in
-`tests/testthat/_snaps/`, while odiff does the comparison, so differences
-below the threshold don't fail:
-
-```r
 test_that("plots are stable", {
   p <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) + ggplot2::geom_point()
   expect_snapshot_image(p)
@@ -130,128 +166,93 @@ testthat::snapshot_review()
 testthat::snapshot_accept()
 ```
 
-Like other file snapshots, these are skipped on CRAN. `odiff_preset()` gives
-calibrated settings (`"strict"`, `"default"`, `"screenshot"`,
-`"cross_platform"`). On CI, `snapshot_report()` writes an HTML, Markdown or
-JUnit report of all changed snapshots.
+Plots are rendered with ragg when it is installed, and a failing
+`expect_images_match()` saves a diff image to `tests/testthat/_odiffr/`.
+`odiff_preset()` has calibrated settings: `"strict"`, `"default"`,
+`"screenshot"` and `"cross_platform"`. Image snapshots are skipped on CRAN, like
+other file snapshots. On CI, `snapshot_report()` writes an HTML, Markdown or
+JUnit report of the snapshots that changed.
 
-### Shiny apps (shinytest2)
+</details>
 
-Use odiff for shinytest2 screenshots to tolerate browser antialiasing noise
-and get a diff image when a screenshot changes:
+<details>
+<summary><b>Shiny apps with shinytest2</b></summary>
 
 ```r
 app$expect_screenshot(compare = compare_file_odiff(preset = "screenshot"))
 ```
 
-See `vignette("shinytest2", package = "odiffr")`, and
-`vignette("web-pages", package = "odiffr")` for web pages and htmlwidgets.
+odiff tolerates browser antialiasing noise and leaves a diff image when a
+screenshot changes.
 
-## Batch Comparison and Reports
+</details>
+
+<details>
+<summary><b>Folders, reports and approving changes</b></summary>
 
 ```r
-# Compare two directories (matched by relative path)
 results <- compare_image_dirs("baseline/", "current/", recursive = TRUE,
                               diff_dir = "diffs/")
 summary(results)
 failed_pairs(results)
 
-# HTML report with baseline, current and diff thumbnails
 batch_report(results, "diffs/report.html", images = "all", embed = TRUE)
 
-# Or both steps in one call
-compare_dirs_report("baseline/", "current/")
-
-# Accept intended changes as the new baselines
 approve_changes(results, dry_run = TRUE)
 approve_changes(results)
+
+# Or compare and write the report in one call
+compare_dirs_report("baseline/", "current/")
 ```
 
-Files missing from `current/` are reported as failing `"missing"` rows, and a
-pair that can't be compared becomes an `"error"` row with the message in the
-`error` column. `compare_images_batch()` compares an explicit list of pairs,
-optionally in parallel.
+Files missing from `current/` fail as `"missing"`, and pairs that can't be
+compared become `"error"` rows instead of stopping the run.
+`compare_images_batch()` compares an explicit list of pairs, optionally in
+parallel.
 
-### PDFs
+</details>
+
+<details>
+<summary><b>PDF reports</b></summary>
 
 ```r
 res <- compare_pdfs("before/report.pdf", "after/report.pdf", dpi = 150,
                     diff_dir = "pdf-diffs")
 failed_pairs(res)[, c("page", "reason", "diff_percentage")]
 
-# Every PDF in two directories, e.g. outputs before/after an R upgrade
-res <- compare_pdf_dirs("outputs-old/", "outputs-new/", diff_dir = "pdf-diffs")
+compare_pdf_dirs("outputs-old/", "outputs-new/", diff_dir = "pdf-diffs")
 ```
 
-Requires the pdftools package. See
-`vignette("pdf-outputs", package = "odiffr")`.
+Needs the pdftools package.
 
-### CI
+</details>
 
-`use_odiffr_ci()` adds a ready-to-use GitHub Actions workflow to your package
-(`.github/workflows/odiffr.yaml`) that installs odiff with `install_odiff()`,
-runs your tests, summarises changed image snapshots with `snapshot_report()`
-on the job summary page and uploads the new snapshots and diff images when
-tests fail:
+<details>
+<summary><b>GitHub Actions and other CI</b></summary>
 
 ```r
 odiffr::use_odiffr_ci()
 ```
 
-Batch results can be written in formats CI systems display natively:
+This adds `.github/workflows/odiffr.yaml`, which installs odiff, runs your
+tests, summarises changed snapshots on the job page and uploads diff images
+when tests fail. For your own workflows:
 
 ```yaml
-      - name: Compare images
-        run: |
-          library(odiffr)
-          results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
-          batch_markdown(results)                    # GitHub job summary
-          batch_junit(results, "odiffr-junit.xml")   # test report
-          batch_report(results, "diffs/report.html", images = "all", embed = TRUE)
-          if (any(!results$match)) stop("Visual regression detected!")
-        shell: Rscript {0}
-
-      - name: Upload diffs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-diffs
-          path: diffs/
+- name: Compare images
+  run: |
+    library(odiffr)
+    results <- compare_image_dirs("baseline/", "current/", diff_dir = "diffs/")
+    batch_markdown(results)                    # GitHub job summary
+    batch_junit(results, "odiffr-junit.xml")   # test report
+    if (any(!results$match)) stop("Visual regression detected")
+  shell: Rscript {0}
 ```
 
-## Binary Management
+</details>
 
-```r
-odiff_available()   # is odiff installed?
-odiff_info()        # path, version and source
-install_odiff()     # download odiff to the user cache
-odiffr_update()     # same, lower-level (e.g. to update between releases)
-
-# Use a specific binary
-options(odiffr.path = "/path/to/odiff")
-```
-
-odiff is found via `options(odiffr.path)`, then the system PATH, then the
-binary downloaded by `install_odiff()`. For npm installs (odiff >= 4.4), odiffr
-calls the native binary directly rather than the Node.js launcher on the PATH,
-which makes each comparison around 5x faster; set
-`options(odiffr.resolve_npm = FALSE)` to disable this.
-
-## Supported Formats
-
-| Type   | Formats                                    |
-| ------ | ------------------------------------------ |
-| Input  | PNG, JPEG, WEBP, TIFF (`.tiff`), BMP; PDF via `compare_pdfs()` |
-| Output | PNG only                                   |
-
-Cross-format comparison is supported (e.g. JPEG against PNG). odiff does not
-accept the `.tif` extension.
-
-## For Validated Environments
-
-- **Pinnable**: lock to a specific validated binary with `options(odiffr.path = ...)`
-- **Audit records**: `audit_record()` writes a JSON or CSV record of comparisons, with input and output file hashes, the odiff version and binary hash, parameters, platform and a UTC timestamp
-- **Base R core**: no non-base R package dependencies for core functions
+<details>
+<summary><b>Validated environments</b></summary>
 
 ```r
 options(odiffr.path = "/validated/bin/odiff-4.5.0")
@@ -260,19 +261,46 @@ result <- odiff_run("baseline.png", "current.png", "diff.png", threshold = 0.05)
 audit_record(result, file = "audit.json")
 ```
 
-## Performance
+Audit records hold input and output file hashes, the odiff version and binary
+hash, parameters, platform and a UTC timestamp. Core functions depend only on
+base R.
 
-odiff is approximately 6x faster than ImageMagick for pixel comparison, thanks
-to SIMD optimisations. On x86_64 systems with AVX-512, pass `enable_asm = TRUE`
-to `odiff_run()` for ~12% faster comparisons.
+</details>
+
+<details>
+<summary><b>Managing the odiff binary</b></summary>
+
+```r
+odiff_available()   # is odiff installed?
+odiff_info()        # path, version and source
+install_odiff()     # download odiff to the user cache
+```
+
+In interactive sessions odiffr offers to install odiff the first time it is
+needed, and never downloads anything without asking. It looks for odiff in
+`options(odiffr.path)`, then on the `PATH`, then in the cache that
+`install_odiff()` uses. You can also install it with
+`npm install -g odiff-bin`. For npm installs of odiff >= 4.4, odiffr calls
+the native binary directly rather than the Node.js launcher, which makes each
+comparison around 5x faster.
+
+</details>
+
+## Good to know
+
+- **Formats:** PNG, JPEG, WEBP, TIFF (`.tiff`, not `.tif`) and BMP in, PNG
+  diffs out. Different formats can be compared with each other.
+- **Platforms:** Windows, macOS (Intel and Apple Silicon) and Linux.
+- **Speed:** on x86_64 CPUs with AVX-512, `odiff_run(enable_asm = TRUE)` makes
+  comparisons about 12% faster.
 
 ## Related
 
-- [odiff](https://github.com/dmtrKovalenko/odiff) - the underlying CLI tool
-- [vdiffr](https://CRAN.R-project.org/package=vdiffr) - SVG-based snapshot testing for ggplot2 and grid graphics (complements odiffr's pixel-based testing)
-- [shinytest2](https://CRAN.R-project.org/package=shinytest2) - testing Shiny apps
-- [magick](https://CRAN.R-project.org/package=magick) - R wrapper for ImageMagick
+- [vdiffr](https://CRAN.R-project.org/package=vdiffr): SVG snapshot testing
+  for ggplot2 and grid graphics, a complement to pixel-based tests
+- [shinytest2](https://CRAN.R-project.org/package=shinytest2): testing for Shiny apps
+- [magick](https://CRAN.R-project.org/package=magick): image processing with ImageMagick
 
-## License
+<br>
 
-MIT
+<p align="center"><sub>MIT licensed · Built on <a href="https://github.com/dmtrKovalenko/odiff">odiff</a> by Dmitriy Kovalenko</sub></p>
